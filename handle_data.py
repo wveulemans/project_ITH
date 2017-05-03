@@ -79,19 +79,20 @@ def copyfile_VCF_TXT(name):
 	#print source1
 	destination1 = '/home/shared_data_core/COLON/subclonality/%s/'% name
 	#print destination1
-		
+	
+	global cnv_file	
+	cnv_file = 0
+
 	try:		
 		shutil.copy2(os.path.abspath(source1[0]),os.path.abspath(destination1))
-		print "Transferring CNV-file"
+		print "Transferring CNV file"
 		cnv_file = 1
 
 	except IndexError, e:
 		print "No CNV file. %s" % e
 		cnv_file = 0
 
-	else:
-		print "OK"
-
+	#print cnv_file 
 	return cnv_file
 		
 				
@@ -115,34 +116,44 @@ def copyfile_BAM(name):
 
 
 ##prepare .tsv file for PyClone
-def prep_tsv(names, text_file1, cnv_file):
-	vcf_reader = vcf.Reader(open('/home/shared_data_core/COLON/subclonality/a_1_3_pt/ith_run3_a_1_3_pt_filter1_indel.vcf', 'r'))
-	#print vcf_reader.header	
-	# add header to outfile
-	tsv_out = open('pyclone_name.tsv','w+')
-	file_writer = csv.writer(tsv_out, delimiter='\t')
-	file_writer.writerow(['mutation_id','ref_counts','var_counts','normal_cn','minor_cn','major_cn','variant_case','variant_freq','genotype'])
+def prep_tsv(name):
 
+	source = glob.glob('/home/shared_data_core/COLON/subclonality/%s/*.vcf'% name)
+		
+	for files in source:
+		parts = []			
+		parts = files.split("/")[6]
+		
+		vcf_reader = vcf.Reader(open('%s'% files, 'r'))
+		#print vcf_reader
+		#add header to outfile
+		tsv_out = open('/home/shared_data_core/COLON/subclonality/%s/pyclone_%s.tsv'% (name,parts),'w+')
+		file_writer = csv.writer(tsv_out, delimiter='\t')
+		file_writer.writerow(['mutation_id','ref_counts','var_counts','normal_cn','minor_cn','major_cn','variant_case','variant_freq','genotype'])
 
-	for name in names:
+		variant_info = OD({
+
+			'mutation_id': {'chr': str(), 'pos':int(), 'name':str()}, 
+			'ref_counts': int(), 
+			'var_counts': int(),
+			'normal_cn': int(),
+			'minor_cn': int(),
+			'major_cn': int(), 
+			'variant_case': str(name),
+			'variant_freq': float(),
+			'genotype': str(),
+			'gene_id': str()
+		})
+		variant_number = 0
+		return variant_info
+
+def read_vcf(variant_info):
 		for record in vcf_reader:
-			variant_info = OD({
-
-				'mutation_id': {'chr': str(), 'pos':str(), 'name':str()}, 
-				'ref_counts' : int(), 
-				'var_counts' : int(),
-				'normal_cn' : int(),
-				'minor_cn' : int(),
-				'major_cn' : int(), 
-				'variant_case':str(name),
-				'variant_freq':float(),
-				'genotype':str()
-			})
-
-			variant_info['mutation_id']['chr'] = record.CHROM
+			print variant_number
+			variant_info[variant_number]['mutation_id']['chr'] = record.CHROM
 			variant_info['mutation_id']['pos'] = record.POS
 			variant_info['mutation_id']['name'] = name
-			#print variant_info['mutation_id']
+			#print variant_info['mutation_id']['pos']
 			
 			variant_info['ref_counts'] = record.samples[1]['RD']
 			variant_info['var_counts'] = record.samples[1]['AD']
@@ -159,18 +170,40 @@ def prep_tsv(names, text_file1, cnv_file):
 			if binary_GT[0] == binary_GT[1]:
 				variant_info['genotype'] = str('BB')
 			#print variant_info['genotype']
+			variant_number =+ 1
+			return variant_info
 
-	if cnv_file == True:
-		with open(text_file1, 'r') as present:
+def read_cnv(cnv_file):
+		if cnv_file == 'test':
+			#source = glob.glob('/home/shared_data_core/COLON/subclonality/%s/*.vcf'% name)
+			#print source
+			os.chdir('/home/shared_data_core/COLON/subclonality/%s/'% name)
+			present = open('X.home.shared_data_core.ITH_Nele.ith_analysis_ploidy2.Results.ith_run3_%s.ith_run3_%s.real.recal.summary.txt'% (name,name), 'r')
+			next(present) #skip header
+		
+			range_pos = OD({
+				'gene': str(),
+				'begin': int(),
+				'end': int()
+			})			
+		
 			for line in present:
-				print line
-			
+				range_pos['gene'] = line.split('\t')[0]
+				range_pos['begin'] = line.split('\t')[2]
+				range_pos['end'] = line.split('\t')[3]
+				#print range_pos['gene']
+				print range_pos['begin']
+				if range_pos['begin'] < variant_info['mutation_id']['pos'] < range_pos['end']:			
+					print "mutation lies in gene"			
+		#print variant_info['mutation_id']['pos']
+
+#def compare_cnv():
+						
 
 ##controllable
 def main():
 	text_file = '/home/shared_data_core/COLON/subclonality/paired_samples_nele_purity_all_runs_short.txt'
-	text_file1 = '/home/shared_data_core/COLON/subclonality/b_1_12_pt/X.home.shared_data_core.ITH_Nele.ith_analysis_ploidy2.Results.ith_run3_b_1_12_pt.ith_run3_b_1_12_pt.real.recal.summary.txt'
-		
+
 	to_lower(text_file)
 	changepath(text_file)
 	names = sample_names(text_file)
@@ -179,9 +212,11 @@ def main():
 		makedir(name)
 		copyfile_VCF_TXT(name)
 		#copyfile_BAM(name)
-		print cnv_file
+		prep_tsv(name, cnv_file)
+		read_vcf
+		read_cnv
+		compare_cnv
 
-		#prep_tsv(names, text_file1, cnv_file)
 	
 
 	
