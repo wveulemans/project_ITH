@@ -92,7 +92,6 @@ def copyfile_VCF_TXT(name):
 	else:
 		print "OK"
 
-	#print cnv_file 
 	return cnv_file
 		
 				
