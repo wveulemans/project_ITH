@@ -141,7 +141,7 @@ def prep_tsv(name,files):
 	})
 	return variant_info
 
-def read_vcf(variant_info,files,name):
+def read_vcf(variant_info,files):
 	variant_number = 0
 	vcf_reader = vcf.Reader(open('%s'% files, 'r'))
 	#print vcf_reader
@@ -211,7 +211,7 @@ def main():
 		source = glob.glob('/home/shared_data_core/COLON/subclonality/%s/*.vcf'% name)
 		for files in source:
 			prep_tsv(name,files)
-		read_vcf(variant_info,files,name)
+		read_vcf(variant_info,files)
 		read_cnv(cnv_file)
 		#compare_cnv()
 
