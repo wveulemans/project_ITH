@@ -150,7 +150,7 @@ def read_vcf(variant_info,files,cnv_file,name,file_writer):
 	
 		variant_info['nr'] = variant_number
 		variant_info['chr'] = record.CHROM
-		variant_info['pos'] = record.POS
+		variant_info['pos'] = int(record.POS)
 		variant_info['name'] = name
 		variant_info['mutation_id'] = str(variant_number)+':'+str(record.CHROM)
 		#print variant_info['mutation_id']
@@ -171,39 +171,41 @@ def read_vcf(variant_info,files,cnv_file,name,file_writer):
 		#print variant_info['genotype']
 		variant_number += 1
 		#print variant_info
+
+		range_pos = read_cnv(cnv_file, name)
+		compare(cnv_file,range_pos, variant_info)
+		tsv_writer(variant_info, file_writer)
+
 		
-range_pos = OD([
-			('gene', str()),
-			('begin', int()),
-			('end', int())
-		])	
+		
 
 def read_cnv(cnv_file, name):
+	range_pos = dict()
 	if cnv_file == True:
 		#source = glob.glob('/home/shared_data_core/COLON/subclonality/%s/*.vcf'% name)
 		#print source
 		os.chdir('/home/shared_data_core/COLON/subclonality/%s/'% name)
 		present = open('X.home.shared_data_core.ITH_Nele.ith_analysis_ploidy2.Results.ith_run3_%s.ith_run3_%s.real.recal.summary.txt'% (name,name), 'r')
 		next(present) #skip header
-		
 			
 		for line in present:
-			range_pos['gene'] = line.split('\t')[0]
-			range_pos['begin'] = line.split('\t')[2]
-			range_pos['end'] = line.split('\t')[3]
-			#print range_pos['gene']
-			return range_pos
+			print line
+			range_pos = {str(line.split('\t' )[0]): dict()}
+			range_pos[str(line.split('\t')[0])] = {'begin': int(line.split('\t')[2]), 'end':int(line.split('\t')[3])}
+			#print range_pos
+	print range_pos
+	return range_pos
 
 def compare(cnv_file,range_pos,variant_info):
 	
 	if cnv_file == True:
-		print range_pos
 		print variant_info['pos']
-		if range_pos['begin'] < variant_info['pos'] < range_pos['end']:			
-			print "Mutation lies in gene"			
+		for gene in range_pos:
+			print gene
+			if range_pos[gene]['begin'] <= variant_info['pos'] <= range_pos[gene]['end']:			
+				print "Mutation lies in gene"	
+		
 	#print variant_info['mutation_id']['pos']
-
-
 
 
 def tsv_writer(variant_info, file_writer):
@@ -211,7 +213,7 @@ def tsv_writer(variant_info, file_writer):
 		#print ele
 		file_writer.write(str(variant_info[ele])+'\t')
 	file_writer.write('\n')
-	file_writer.close()
+	#file_writer.close()
 
 
 						
@@ -232,9 +234,10 @@ def main():
 		for files in source:
 			variant_info,file_writer = prep_tsv(name,files)
 			read_vcf(variant_info,files,cnv_file,name,file_writer)
-			read_cnv(cnv_file, name)
-			compare(cnv_file,range_pos, variant_info)
-			tsv_writer(variant_info, file_writer)
+			#range_pos = read_cnv(cnv_file, name)
+			#compare(cnv_file,range_pos, variant_info)
+			#tsv_writer(variant_info, file_writer)
+		file_writer.close()
 			
 
 	
