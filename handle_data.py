@@ -121,36 +121,39 @@ def prep_tsv(name,files):
 	parts = files.split("/")[6]
 	
 	#add header to outfile
-	tsv_out = open('/home/shared_data_core/COLON/subclonality/%s/pyclone_%s.tsv'% (name,parts),'w+')
-	file_writer = csv.writer(tsv_out, delimiter='\t')
-	file_writer.writerow(['mutation_id','ref_counts','var_counts','normal_cn','minor_cn','major_cn','variant_case','variant_freq','genotype'])
+	file_writer = open('/home/shared_data_core/COLON/subclonality/%s/pyclone_%s.tsv'% (name,parts),'w+')
+	file_writer.write('mutation_id\tref_counts\tvar_counts\tnormal_cn\tminor_cn\tmajor_cn\tvariant_case\tvariant_freq\tgenotype\n')
 
 	global variant_info
-	variant_info = OD({
+	variant_info = OD([
+		('mutation_id', str()),
+		('ref_counts', int()), 
+		('var_counts', int()),
+		('normal_cn', int()),
+		('minor_cn', int()),
+		('major_cn', int()), 
+		('variant_case', str(name)),
+		('variant_freq', float()),
+		('genotype', str()),
+		('gene_id', str()),
+		('nr', int()), 
+		('chr', str()), 
+		('pos', int()), 
+		('name', str())
+	])
+	return variant_info,file_writer
 
-		'mutation_id': {'chr': str(), 'pos': int(), 'name': str()}, 
-		'ref_counts': int(), 
-		'var_counts': int(),
-		'normal_cn': int(),
-		'minor_cn': int(),
-		'major_cn': int(), 
-		'variant_case': str(name),
-		'variant_freq': float(),
-		'genotype': str(),
-		'gene_id': str()
-	})
-	return variant_info
-
-def read_vcf(variant_info,files,name):
+def read_vcf(variant_info,files,cnv_file,name,file_writer):
 	variant_number = 0
 	vcf_reader = vcf.Reader(open('%s'% files, 'r'))
-	#print vcf_reader
 	for record in vcf_reader:
-		print variant_number
-		variant_info['mutation_id']['chr'] = record.CHROM
-		variant_info['mutation_id']['pos'] = record.POS
-		variant_info['mutation_id']['name'] = name
-		#print variant_info['mutation_id']['pos']
+	
+		variant_info['nr'] = variant_number
+		variant_info['chr'] = record.CHROM
+		variant_info['pos'] = record.POS
+		variant_info['name'] = name
+		variant_info['mutation_id'] = str(variant_number)+':'+str(record.CHROM)
+		#print variant_info['mutation_id']
 		
 		variant_info['ref_counts'] = record.samples[1]['RD']
 		variant_info['var_counts'] = record.samples[1]['AD']
@@ -166,34 +169,51 @@ def read_vcf(variant_info,files,name):
 		if binary_GT[0] == binary_GT[1]:
 			variant_info['genotype'] = str('BB')
 		#print variant_info['genotype']
-		variant_number =+ 1
-		return variant_info
+		variant_number += 1
+		#print variant_info
+		
+range_pos = OD([
+			('gene', str()),
+			('begin', int()),
+			('end', int())
+		])	
 
-def read_cnv(cnv_file):
-	if cnv_file == 'test':
+def read_cnv(cnv_file, name):
+	if cnv_file == True:
 		#source = glob.glob('/home/shared_data_core/COLON/subclonality/%s/*.vcf'% name)
 		#print source
 		os.chdir('/home/shared_data_core/COLON/subclonality/%s/'% name)
 		present = open('X.home.shared_data_core.ITH_Nele.ith_analysis_ploidy2.Results.ith_run3_%s.ith_run3_%s.real.recal.summary.txt'% (name,name), 'r')
 		next(present) #skip header
 		
-		range_pos = OD({
-			'gene': str(),
-			'begin': int(),
-			'end': int()
-		})			
-		
+			
 		for line in present:
 			range_pos['gene'] = line.split('\t')[0]
 			range_pos['begin'] = line.split('\t')[2]
 			range_pos['end'] = line.split('\t')[3]
 			#print range_pos['gene']
-			print range_pos['begin']
-			if range_pos['begin'] < variant_info['mutation_id']['pos'] < range_pos['end']:			
-				print "mutation lies in gene"			
+			return range_pos
+
+def compare(cnv_file,range_pos,variant_info):
+	
+	if cnv_file == True:
+		print range_pos
+		print variant_info['pos']
+		if range_pos['begin'] < variant_info['pos'] < range_pos['end']:			
+			print "Mutation lies in gene"			
 	#print variant_info['mutation_id']['pos']
 
-#def compare_cnv():
+
+
+
+def tsv_writer(variant_info, file_writer):
+	for ele in variant_info:
+		#print ele
+		file_writer.write(str(variant_info[ele])+'\t')
+	file_writer.write('\n')
+	file_writer.close()
+
+
 						
 
 ##controllable
@@ -210,12 +230,12 @@ def main():
 		#copyfile_BAM(name)
 		source = glob.glob('/home/shared_data_core/COLON/subclonality/%s/*.vcf'% name)
 		for files in source:
-			prep_tsv(name,files)
-		read_vcf(variant_info,files,name)
-		read_cnv(cnv_file)
-		#compare_cnv()
-
-	
+			variant_info,file_writer = prep_tsv(name,files)
+			read_vcf(variant_info,files,cnv_file,name,file_writer)
+			read_cnv(cnv_file, name)
+			compare(cnv_file,range_pos, variant_info)
+			tsv_writer(variant_info, file_writer)
+			
 
 	
 
