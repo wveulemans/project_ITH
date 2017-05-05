@@ -135,11 +135,9 @@ def prep_tsv(name,files):
 		('variant_case', str(name)),
 		('variant_freq', float()),
 		('genotype', str()),
-		('gene_id', str()),
 		('nr', int()), 
 		('chr', str()), 
-		('pos', int()), 
-		('name', str())
+		('pos', int())
 	])
 	return variant_info,file_writer
 
@@ -150,10 +148,7 @@ def read_vcf(variant_info,files,cnv_file,name,file_writer):
 	
 		variant_info['nr'] = variant_number
 		variant_info['chr'] = record.CHROM
-		if variant_info['chr'] == 'chrX' or variant_info['chr'] == 'chrY':
-			print 'sex chr!!!'
 		variant_info['pos'] = int(record.POS)
-		variant_info['name'] = name
 		variant_info['mutation_id'] = str(variant_number)+':'+str(record.CHROM)
 		#print variant_info['mutation_id']
 		
@@ -161,7 +156,10 @@ def read_vcf(variant_info,files,cnv_file,name,file_writer):
 		variant_info['var_counts'] = record.samples[1]['AD']
 		#print variant_info['ref_counts']
 		#print variant_info['var_counts']
-		variant_info['normal_cn'] = int('2')
+		if variant_info['chr'] == 'chrX' or variant_info['chr'] == 'chrY':			##ATTENTION: sex chromosomes have different copynumber!!!
+			print 'sex chr!!!'
+		else:
+			variant_info['normal_cn'] = int('2')
 		#print variant_info['normal_cn']
 		
 		binary_GT = record.samples[1]['GT'].replace('|', '/').split('/')
@@ -176,9 +174,7 @@ def read_vcf(variant_info,files,cnv_file,name,file_writer):
 		range_pos_all = list()	
 		range_pos = dict()
 		range_pos_all = read_cnv(cnv_file, name)
-		compare(cnv_file,range_pos_all, variant_info)
-		tsv_writer(variant_info, file_writer)
-
+		compare(range_pos_all, variant_info, file_writer, name)
 		
 		
 
@@ -186,8 +182,6 @@ def read_cnv(cnv_file, name):
 	range_pos_all = list()	
 	range_pos = dict()
 	if cnv_file == True:
-		#source = glob.glob('/home/shared_data_core/COLON/subclonality/%s/*.vcf'% name)
-		#print source
 		os.chdir('/home/shared_data_core/COLON/subclonality/%s/'% name)
 		present = open('X.home.shared_data_core.ITH_Nele.ith_analysis_ploidy2.Results.ith_run3_%s.ith_run3_%s.real.recal.summary.txt'% (name,name), 'r')
 		next(present) #skip header
@@ -195,30 +189,27 @@ def read_cnv(cnv_file, name):
 		for line in present:
 			range_pos = OD([
 				('gene_id', str()),
+				('chr', str()),
 				('begin', int()),
 				('end', int())
 				])						
 			range_pos['gene_id'] = str(line.split('\t')[0])
+			range_pos['chr'] = str(line.split('\t')[1])
 			range_pos['begin'] = int(line.split('\t')[2])
 			range_pos['end'] = int(line.split('\t')[3])
 			range_pos_all.append(range_pos)
-			
 			#print range_pos['gene_id']+'\t'+range_pos['begin']+'\t'+range_pos['end']#{str(line.split('\t' )[0]): dict()}
-			#range_pos[str(line.split('\t')[0])] = {'begin': int(line.split('\t')[2]), 'end':int(line.split('\t')[3])}
-			#print range_pos
-	#print range_pos_all
+
 	return range_pos_all
 
-def compare(cnv_file,range_pos_all,variant_info):
-	
-	#if cnv_file == True:
-		#print variant_info['pos']
+
+def compare(range_pos_all,variant_info, file_writer, name):
 	for gene_dict in range_pos_all:
 		#print gene_dict, type(gene_dict['begin'])
-		if gene_dict['begin'] <= variant_info['pos'] <= gene_dict['end']:			
-			print "Mutation lies in %s" % 	gene_dict['gene_id']
-		
-	#print variant_info['mutation_id']['pos']
+		if gene_dict['begin'] <= variant_info['pos'] and variant_info['pos'] <= gene_dict['end'] and variant_info['chr'] == gene_dict['chr']:			
+			print "Mutation lies in %s" % 	gene_dict['gene_id'] 
+			variant_info['mutation_id'] = name+':'+variant_info['genotype']+':'+gene_dict['gene_id']+':'+variant_info['chr']+':'+str(variant_info['pos'])
+			tsv_writer(variant_info, file_writer)
 
 
 def tsv_writer(variant_info, file_writer):
@@ -227,9 +218,7 @@ def tsv_writer(variant_info, file_writer):
 		file_writer.write(str(variant_info[ele])+'\t')
 	file_writer.write('\n')
 	#file_writer.close()
-
-
-						
+				
 
 ##controllable
 def main():
