@@ -131,7 +131,7 @@ def prep_tsv(name,files):
 		('var_counts', int()),
 		('normal_cn', int()),
 		('minor_cn', int()),
-		('major_cn', int()), 
+		('major_cn', str()), 
 		('variant_case', str(name)),
 		('variant_freq', float()),
 		('genotype', str()),
@@ -145,13 +145,11 @@ def read_vcf(variant_info,files,cnv_file,name,file_writer):
 	variant_number = 0
 	vcf_reader = vcf.Reader(open('%s'% files, 'r'))
 	for record in vcf_reader:
-	
+		
 		variant_info['nr'] = variant_number
 		variant_info['chr'] = record.CHROM
 		variant_info['pos'] = int(record.POS)
-		variant_info['mutation_id'] = str(variant_number)+':'+str(record.CHROM)
-		#print variant_info['mutation_id']
-		
+				
 		variant_info['ref_counts'] = record.samples[1]['RD']
 		variant_info['var_counts'] = record.samples[1]['AD']
 		#print variant_info['ref_counts']
@@ -161,7 +159,12 @@ def read_vcf(variant_info,files,cnv_file,name,file_writer):
 		else:
 			variant_info['normal_cn'] = int('2')
 		#print variant_info['normal_cn']
+		variant_info['variant_freq'] = (1 - (float(record.samples[1]['RD'])/(record.samples[1]['RD'] + record.samples[1]['AD'])))
+		#print variant_info['variant_freq']
 		
+		variant_info['minor_CN'] = 0
+		#variant_info['major_CN'] = record.samples[4]
+
 		binary_GT = record.samples[1]['GT'].replace('|', '/').split('/')
 		#print binary_GT
 		if binary_GT[0] != binary_GT[1]:
@@ -191,22 +194,26 @@ def read_cnv(cnv_file, name):
 				('gene_id', str()),
 				('chr', str()),
 				('begin', int()),
-				('end', int())
+				('end', int()),
+				('cnv_state', str())
 				])						
 			range_pos['gene_id'] = str(line.split('\t')[0])
 			range_pos['chr'] = str(line.split('\t')[1])
 			range_pos['begin'] = int(line.split('\t')[2])
 			range_pos['end'] = int(line.split('\t')[3])
+			range_pos['cnv_state'] = str(line.split('\t')[4])
+			if range_pos['cnv_state'] == '55':
+				print 'SHITTTT', line, present
 			range_pos_all.append(range_pos)
 			#print range_pos['gene_id']+'\t'+range_pos['begin']+'\t'+range_pos['end']#{str(line.split('\t' )[0]): dict()}
 
 	return range_pos_all
 
-
 def compare(range_pos_all,variant_info, file_writer, name):
 	for gene_dict in range_pos_all:
 		#print gene_dict, type(gene_dict['begin'])
-		if gene_dict['begin'] <= variant_info['pos'] and variant_info['pos'] <= gene_dict['end'] and variant_info['chr'] == gene_dict['chr']:			
+		if gene_dict['begin'] <= variant_info['pos'] and variant_info['pos'] <= gene_dict['end'] and variant_info['chr'] == gene_dict['chr']:	
+			variant_info['major_cn'] = gene_dict['cnv_state']		
 			print "Mutation lies in %s" % 	gene_dict['gene_id'] 
 			variant_info['mutation_id'] = name+':'+variant_info['genotype']+':'+gene_dict['gene_id']+':'+variant_info['chr']+':'+str(variant_info['pos'])
 			tsv_writer(variant_info, file_writer)
