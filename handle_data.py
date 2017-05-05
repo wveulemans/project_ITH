@@ -187,25 +187,36 @@ def read_cnv(cnv_file, name):
 		os.chdir('/home/shared_data_core/COLON/subclonality/%s/'% name)
 		present = open('X.home.shared_data_core.ITH_Nele.ith_analysis_ploidy2.Results.ith_run3_%s.ith_run3_%s.real.recal.summary.txt'% (name,name), 'r')
 		next(present) #skip header
+
+		gene_number = 0 
+		range_pos = OD([
+			('gene_id', str()),
+			('begin', int()),
+			('end', int())
+			])
 			
-		for line in present:
-			print line
-			range_pos = {str(line.split('\t' )[0]): dict()}
-			range_pos[str(line.split('\t')[0])] = {'begin': int(line.split('\t')[2]), 'end':int(line.split('\t')[3])}
+		for line in present:						
+			range_pos['gene_id'] = str(gene_number)+':'+str(line.split('\t')[0])
+			range_pos['begin'] = line.split('\t')[2]
+			range_pos['end'] = line.split('\t')[3]
+			gene_number += 1
+			
+			print range_pos['gene_id']+'\t'+range_pos['begin']+'\t'+range_pos['end']#{str(line.split('\t' )[0]): dict()}
+			#range_pos[str(line.split('\t')[0])] = {'begin': int(line.split('\t')[2]), 'end':int(line.split('\t')[3])}
 			#print range_pos
-	print range_pos
+	#print range_pos
 	return range_pos
 
 def compare(cnv_file,range_pos,variant_info):
 	
 	if cnv_file == True:
 		print variant_info['pos']
-		for gene in range_pos:
+		"""for gene in range_pos:
 			print gene
 			if range_pos[gene]['begin'] <= variant_info['pos'] <= range_pos[gene]['end']:			
 				print "Mutation lies in gene"	
 		
-	#print variant_info['mutation_id']['pos']
+	#print variant_info['mutation_id']['pos']"""
 
 
 def tsv_writer(variant_info, file_writer):
@@ -234,9 +245,7 @@ def main():
 		for files in source:
 			variant_info,file_writer = prep_tsv(name,files)
 			read_vcf(variant_info,files,cnv_file,name,file_writer)
-			#range_pos = read_cnv(cnv_file, name)
-			#compare(cnv_file,range_pos, variant_info)
-			#tsv_writer(variant_info, file_writer)
+
 		file_writer.close()
 			
 
