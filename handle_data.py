@@ -29,6 +29,34 @@ def changepath(short1):
      		out.writelines(replaced)
 	tsv.close()
 
+##add gender to file
+def add_gender(short2, text_file):
+	r = open(short2, 'rb')
+	w = open(text_file, 'rw+')
+	
+    	reader = csv.reader(r, delimiter=',')
+
+	patient_info = OD({
+			'id': str(),
+			'sex': str()
+			})    	
+
+	for row in reader:
+		patient_info['id'] = row[0]
+		patient_info['sex'] = row[6]
+		print patient_info
+
+		id_list = []
+		for line in w:
+			sample = line.split()
+			ids = sample[0].split('_')
+			print ids[2]
+			if ids[2] == patient_info['id']:
+				print patient_info['sex']
+			else:
+				print 'Nothing found'
+			
+
 
 ##mkdir per patient
 def sample_names(short2):
@@ -40,7 +68,7 @@ def sample_names(short2):
 	for line in sample:
 		parts = line.split()		
 		if len(parts) > 0:   		
-		    result.append(parts[4])	# print column 4
+		    result.append(parts[4])	#print column 4
 
 	#print result
 	names = []
@@ -176,8 +204,8 @@ def read_vcf(variant_info,files,cnv_file,name,file_writer):
 		#print variant_info
 		range_pos_all = list()	
 		range_pos = dict()
-		range_pos_all = read_cnv(cnv_file, name)
-		compare(range_pos_all, variant_info, file_writer, name)
+		#range_pos_all = read_cnv(cnv_file, name)
+		#compare(range_pos_all, variant_info, file_writer, name)
 		
 		
 
@@ -233,18 +261,20 @@ def main():
 
 	to_lower(text_file)
 	changepath(text_file)
+	short2 = '/home/shared_data_core/COLON/subclonality/Klinischegegegeven_patienten_ITH_20151110.csv'
+	add_gender(short2, text_file)
 	names = sample_names(text_file)
 	
 	for name in names:
-		makedir(name)
-		copyfile_VCF_TXT(name)
+		#makedir(name)
+		#copyfile_VCF_TXT(name)
 		#copyfile_BAM(name)
 		source = glob.glob('/home/shared_data_core/COLON/subclonality/%s/*.vcf'% name)
-		for files in source:
-			variant_info,file_writer = prep_tsv(name,files)
-			read_vcf(variant_info,files,cnv_file,name,file_writer)
+		#for files in source:
+			#variant_info,file_writer = prep_tsv(name,files)
+			#read_vcf(variant_info,files,cnv_file,name,file_writer)
 
-		file_writer.close()
+		#file_writer.close()
 			
 
 	
