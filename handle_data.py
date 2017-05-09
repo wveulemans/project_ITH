@@ -33,15 +33,16 @@ def changepath(short1):
 ##add gender to file
 def add_gender(short2, text_file):
 	r = open(short2, 'rb')
+	reader = csv.reader(r, delimiter=',')
+	next(reader)
 	w = open(text_file, 'rw+')
-	
-    	reader = csv.reader(r, delimiter=',')
+	next(w)
 
 	patient_info = OD({
 			'id': str(),
 			'sex': str()
 			})    	
-	next(reader)
+	
 	for row in reader:
 		if not row[0] == '':
 			patient_info['id'] = row[0]
@@ -49,14 +50,14 @@ def add_gender(short2, text_file):
 			print patient_info
 
 		
-		for line in w:
-			sample = line.split()
-			ids = sample[0].split('_')
-			print ids[2]
-		if ids[2] == patient_info['id']:
-			w.write(line.rstrip('\n')+'\t'+patient_info['sex'])
-		else:
-			print 'Nothing found'
+			for line in w:
+				ids = line.split()[0].split('_')
+#				print ids[2]
+				if ids[2] == patient_info['id']:
+					w.writelines(line.strip('\n')+'\t'+patient_info['sex']+'\n')
+				else:
+					print 'Nothing found'
+	w.close()
 
 
 ##mkdir per patient
