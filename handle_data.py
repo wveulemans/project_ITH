@@ -73,16 +73,13 @@ def sample_names(short2):
 		    result.append(parts[4])	#print column 4
 
 	#print result
-	items = []
+	names = []
 
 	for name in result:
-		items.append(name.split('_')[2])
-
-	
-	names = ['_'+x+'_' for x in items]
+		names.append(name.split('_')[2])
 
 
-	#print names
+	print names
 	return names
 
 
@@ -98,7 +95,7 @@ def makedir(name):
 
 ##copy .vcf files to patientdirectory
 def copyfile_VCF_TXT(name):
-	source = glob.glob('/home/shared_data_core/COLON/ITH_nele_VCFs_amplicon_filter/VCF_filter1/*%s/*.vcf'% name)
+	source = glob.glob('/home/shared_data_core/COLON/ITH_nele_VCFs_amplicon_filter/VCF_filter1/*_%s_*/*.vcf'% name)
 	#print source
 	destination = '/home/shared_data_core/COLON/subclonality/%s/'% name		
 	#print destination	
@@ -109,7 +106,7 @@ def copyfile_VCF_TXT(name):
 	print "All VCF's copied for %s!"% name
 	
 	
-	source1 = glob.glob('/home/shared_data_core/COLON/subclonality/CNV/*%s*.txt'% name)		#be carefull with glob.glob, elements in list!
+	source1 = glob.glob('/home/shared_data_core/COLON/subclonality/CNV/*_%s_*.txt'% name)		#be carefull with glob.glob, elements in list!
 	#print source1
 	destination1 = '/home/shared_data_core/COLON/subclonality/%s/'% name
 	#print destination1
@@ -123,7 +120,7 @@ def copyfile_VCF_TXT(name):
 		cnv_file = 1
 
 	except IndexError, e:
-		print "No CNV file. %s" % e
+		print "No CNV file. %s"% e
 		cnv_file = 0
 
 	#print cnv_file 
@@ -133,8 +130,8 @@ def copyfile_VCF_TXT(name):
 
 ##move .bam and .bai files to patientdirectory
 def copyfile_BAM(name):
-	BAMS = glob.glob('/home/shared_data_core/COLON/ITH_nele_BAMs/*%s*.bam'%name)
-	BAIS = glob.glob('/home/shared_data_core/COLON/ITH_nele_BAMs/*%s*.bam.bai'%name)	
+	BAMS = glob.glob('/home/shared_data_core/COLON/ITH_nele_BAMs/*_%s_*.bam'%name)
+	BAIS = glob.glob('/home/shared_data_core/COLON/ITH_nele_BAMs/*_%s_*.bam.bai'%name)	
 	#print BAMS, '\n'
 	#print BAIS, '\n'
 	destination = '/home/shared_data_core/COLON/subclonality/%s/'% name
@@ -175,10 +172,11 @@ def prep_tsv(name,files):
 	])
 	return variant_info,file_writer
 
-def read_vcf(variant_info,files,cnv_file,name,file_writer):
+def read_vcf(variant_info,files,cnv_file,name,file_writer,short2):
 	variant_number = 0
 	vcf_reader = vcf.Reader(open('%s'% files, 'r'))
 	for record in vcf_reader:
+		#print record
 		
 		variant_info['nr'] = variant_number
 		variant_info['chr'] = record.CHROM
@@ -189,7 +187,29 @@ def read_vcf(variant_info,files,cnv_file,name,file_writer):
 		#print variant_info['ref_counts']
 		#print variant_info['var_counts']
 		if variant_info['chr'] == 'chrX' or variant_info['chr'] == 'chrY':			##ATTENTION: sex chromosomes have different copynumber!!!
-			print 'sex chr!!!'
+			r = open(short2, 'rb')
+			reader = csv.reader(r, delimiter=',')
+			next(reader)
+
+			patient_info = OD({
+					'id': str(),
+					'sex': str()
+					})    	
+	
+			for row in reader:
+				if not row[0] == '':
+					patient_info['id'] = row[0]
+					patient_info['sex'] = row[6]
+					#print patient_info
+
+					if name.strip('_') == patient_info['id']:
+						if patient_info['sex'] == 'm':
+							variant_info['normal_cn'] = int('1')
+							print '1, because male and sex chr'						
+						else:
+							print '2, female'
+			r.close()
+			
 		else:
 			variant_info['normal_cn'] = int('2')
 		#print variant_info['normal_cn']
@@ -197,7 +217,7 @@ def read_vcf(variant_info,files,cnv_file,name,file_writer):
 		#print variant_info['variant_freq']
 		
 		variant_info['minor_CN'] = 0
-		#variant_info['major_CN'] = record.samples[4]
+		#print variant_info['major_CN'] = record.samples[4]
 
 		binary_GT = record.samples[1]['GT'].replace('|', '/').split('/')
 		#print binary_GT
@@ -214,13 +234,14 @@ def read_vcf(variant_info,files,cnv_file,name,file_writer):
 		compare(range_pos_all, variant_info, file_writer, name)
 		
 		
+		
 
 def read_cnv(cnv_file, name):
 	range_pos_all = list()	
 	range_pos = dict()
 	if cnv_file == True:
 		os.chdir('/home/shared_data_core/COLON/subclonality/%s/'% name)
-		present = open('X.home.shared_data_core.ITH_Nele.ith_analysis_ploidy2.Results.ith_run3_%s.ith_run3_%s.real.recal.summary.txt'% (name,name), 'r')
+		present = open('X.home.shared_data_core.ITH_Nele.ith_analysis_ploidy2.Results.ith_run1_b_1_11_pt.ith_run1_b_1_11_pt.real.recal.summary.txt', 'r')
 		next(present) #skip header
 			
 		for line in present:
@@ -248,7 +269,7 @@ def compare(range_pos_all,variant_info, file_writer, name):
 		#print gene_dict, type(gene_dict['begin'])
 		if gene_dict['begin'] <= variant_info['pos'] and variant_info['pos'] <= gene_dict['end'] and variant_info['chr'] == gene_dict['chr']:	
 			variant_info['major_cn'] = gene_dict['cnv_state']		
-			print "Mutation lies in %s" % 	gene_dict['gene_id'] 
+			print "Mutation lies in %s"% gene_dict['gene_id'] 
 			variant_info['mutation_id'] = name+':'+variant_info['genotype']+':'+gene_dict['gene_id']+':'+variant_info['chr']+':'+str(variant_info['pos'])
 			tsv_writer(variant_info, file_writer)
 
@@ -258,7 +279,7 @@ def tsv_writer(variant_info, file_writer):
 		#print ele
 		file_writer.write(str(variant_info[ele])+'\t')
 	file_writer.write('\n')
-	file_writer.close()
+	#file_writer.close()
 				
 
 ##controllable
@@ -269,19 +290,19 @@ def main():
 	to_lower(text_file)
 	changepath(text_file)
 	to_lower(short2)
-	add_gender(short2, text_file)
+	#add_gender(short2, text_file)
 	names = sample_names(text_file)
 	
-	#for name in names:
-		#makedir(name)
-		#copyfile_VCF_TXT(name)
+	for name in names:
+		makedir(name)
+		copyfile_VCF_TXT(name)
 		#copyfile_BAM(name)
-		#source = glob.glob('/home/shared_data_core/COLON/subclonality/%s/*.vcf'% name)
-		#for files in source:
-			#variant_info,file_writer = prep_tsv(name,files)
-			#read_vcf(variant_info,files,cnv_file,name,file_writer)
+		source = glob.glob('/home/shared_data_core/COLON/subclonality/%s/*.vcf'% name)
+		for files in source:
+			variant_info,file_writer = prep_tsv(name,files)
+			read_vcf(variant_info,files,cnv_file,name,file_writer,short2)
 
-		#file_writer.close()
+		file_writer.close()
 			
 
 	
