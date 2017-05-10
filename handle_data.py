@@ -31,33 +31,54 @@ def changepath(short1):
 
 
 ##add gender to file
-def add_gender(short2, text_file):
-	r = open(short2, 'rb')
-	reader = csv.reader(r, delimiter=',')
-	next(reader)
-	w = open(text_file, 'rw+')
-	next(w)
+def mk_info_file(short2, text_file):
 
-	patient_info = OD({
-			'id': str(),
-			'sex': str()
-			})    	
+	r_sample = open(text_file, 'rb')
+	next(r_sample)
+
+	w = open('info_file.txt', 'wb')
+	w.write('normal_sample_name\ttumor_sample_name\tanalysis_type\tsample_file_directory\tsample_label\tsomatic_callers\tnormal_fraction\ttumor_fraction\tgender\tdate_of_birth\tamount_PT\tage_sample_taken\n')
+
+	patient_info = OD([
+			('normal_sample_name', str()),
+			('tumor_sample_name', str()),
+			('analysis_type', str()),
+			('sample_file_directory', str('/home/shared_data_core/COLON/ITH_nele_VCFs_amplicon_filter/VCF_filter1/')),
+			('sample_label', str()),
+			('somatic_callers', str()),
+			('normal_fraction', str()),
+			('tumor_fraction', str()),
+			('gender', str()),
+			('date_of_birth', str()),
+			('amount_PT', str()),
+			('age_sample_taken', str())
+			])    	
 	
-	for row in reader:
-		if not row[0] == '':
-			patient_info['id'] = row[0]
-			patient_info['sex'] = row[6]
-			print patient_info
+	for line in r_sample:
+		patient_info['normal_sample_name'] = line.split()[0]
+		patient_info['tumor_sample_name'] = line.split()[1]
+		patient_info['analysis_type'] = line.split()[2]		
+		patient_info['sample_file_directory'] = line.split()[3]
+		patient_info['sample_label'] = line.split()[4]
+		patient_info['somatic_callers'] = line.split()[5]
+		patient_info['normal_fraction'] = line.split()[6]
+		patient_info['tumor_fraction'] = line.split()[7]
 
-		
-			for line in w:
-				ids = line.split()[0].split('_')
-#				print ids[2]
-				if ids[2] == patient_info['id']:
-					w.writelines(line.strip('\n')+'\t'+patient_info['sex']+'\n')
-				else:
-					print 'Nothing found'
-	w.close()
+		r_info = open(short2, 'rb')
+		reader = csv.reader(r_info, delimiter=',')
+		next(reader)
+		for line in reader:
+			#print "PATIENT :: ",patient_info['normal_sample_name'].split('_')[2], line[0]
+			if line[0] == patient_info['normal_sample_name'].split('_')[2]:
+				patient_info['gender'] = line[6]
+				patient_info['date_of_birth'] = line[3]
+				patient_info['amount_PT'] = line[8]
+				patient_info['age_sample_taken'] = line[9]
+				for x in patient_info:
+					#print patient_info[x]
+					w.write(str(patient_info[x])+'\t')
+				w.write('\n')
+	w.close
 
 
 ##mkdir per patient
@@ -79,7 +100,7 @@ def sample_names(short2):
 		names.append(name.split('_')[2])
 
 
-	print names
+	#print names
 	return names
 
 
@@ -172,7 +193,7 @@ def prep_tsv(name,files):
 	])
 	return variant_info,file_writer
 
-def read_vcf(variant_info,files,cnv_file,name,file_writer,short2):
+def read_vcf(variant_info,files,cnv_file,name,file_writer,short2,info_file):
 	variant_number = 0
 	vcf_reader = vcf.Reader(open('%s'% files, 'r'))
 	for record in vcf_reader:
@@ -187,27 +208,16 @@ def read_vcf(variant_info,files,cnv_file,name,file_writer,short2):
 		#print variant_info['ref_counts']
 		#print variant_info['var_counts']
 		if variant_info['chr'] == 'chrX' or variant_info['chr'] == 'chrY':			##ATTENTION: sex chromosomes have different copynumber!!!
-			r = open(short2, 'rb')
-			reader = csv.reader(r, delimiter=',')
-			next(reader)
+			r = open(info_file, 'rb')
+			next(r)
 
-			patient_info = OD({
-					'id': str(),
-					'sex': str()
-					})    	
-	
-			for row in reader:
-				if not row[0] == '':
-					patient_info['id'] = row[0]
-					patient_info['sex'] = row[6]
-					#print patient_info
-
-					if name.strip('_') == patient_info['id']:
-						if patient_info['sex'] == 'm':
-							variant_info['normal_cn'] = int('1')
-							print '1, because male and sex chr'						
-						else:
-							print '2, female'
+			for row in r:
+				#print row.split()[8]
+				if row.split()[8] == 'm':
+					variant_info['normal_cn'] = int('1')
+					print '1, because male and sex chr'						
+				else:
+					print '2, female'
 			r.close()
 			
 		else:
@@ -269,7 +279,7 @@ def compare(range_pos_all,variant_info, file_writer, name):
 		#print gene_dict, type(gene_dict['begin'])
 		if gene_dict['begin'] <= variant_info['pos'] and variant_info['pos'] <= gene_dict['end'] and variant_info['chr'] == gene_dict['chr']:	
 			variant_info['major_cn'] = gene_dict['cnv_state']		
-			print "Mutation lies in %s"% gene_dict['gene_id'] 
+			#print "Mutation lies in %s"% gene_dict['gene_id'] 
 			variant_info['mutation_id'] = name+':'+variant_info['genotype']+':'+gene_dict['gene_id']+':'+variant_info['chr']+':'+str(variant_info['pos'])
 			tsv_writer(variant_info, file_writer)
 
@@ -286,11 +296,12 @@ def tsv_writer(variant_info, file_writer):
 def main():
 	text_file = '/home/shared_data_core/COLON/subclonality/paired_samples_nele_purity_all_runs_short.txt'
 	short2 = '/home/shared_data_core/COLON/subclonality/Klinischegegegeven_patienten_ITH_20151110.csv'
+	info_file = '/home/shared_data_core/COLON/subclonality/info_file.txt'
 
 	to_lower(text_file)
 	changepath(text_file)
 	to_lower(short2)
-	#add_gender(short2, text_file)
+	#mk_info_file(short2, text_file)
 	names = sample_names(text_file)
 	
 	for name in names:
@@ -300,7 +311,7 @@ def main():
 		source = glob.glob('/home/shared_data_core/COLON/subclonality/%s/*.vcf'% name)
 		for files in source:
 			variant_info,file_writer = prep_tsv(name,files)
-			read_vcf(variant_info,files,cnv_file,name,file_writer,short2)
+			read_vcf(variant_info,files,cnv_file,name,file_writer,short2,info_file)
 
 		file_writer.close()
 			
