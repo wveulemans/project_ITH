@@ -87,9 +87,10 @@ def sample_names(short2):
 	names = []
 
 	for name in result:
-		names.append(name.split('_')[2])
-
-
+		if name.split('_')[2] not in names:
+			names.append(name.split('_')[2])
+			
+	
 	#print names
 	return names
 
@@ -337,7 +338,7 @@ def main():
 	for name in names:
 		makedir(name)
 		copyfile_VCF_TXT(name)
-		copyfile_BAM(name)
+		#copyfile_BAM(name)
 		patient_map = '/home/shared_data_core/COLON/subclonality/%s/'% name
 		source = glob.glob(patient_map+'*.vcf')
 		for files in source:
