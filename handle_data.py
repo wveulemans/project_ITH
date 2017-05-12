@@ -298,12 +298,12 @@ def compare(range_pos_all,variant_info, file_writer, name):
 
 
 def tsv_writer(variant_info, file_writer):
-	file_writer.write(str(variant_info['mutation_id']+'\t'+variant_info['ref_counts']+'\t'+variant_info['var_counts']+'\t'+variant_info['normal_cn']+'\t'+variant_info['minor_cn']+'\t'+variant_info['major_cn']+'\t'+variant_info['variant_case']+'\t'+variant_info['variant_freq']+'\t'+variant_info['genotype']+'\n'))
+#	file_writer.write(str(variant_info['mutation_id']+'\t'+variant_info['ref_counts']+'\t'+variant_info['var_counts']+'\t'+variant_info['normal_cn']+'\t'+variant_info['minor_cn']+'\t'+variant_info['major_cn']+'\t'+variant_info['variant_case']+'\t'+variant_info['variant_freq']+'\t'+variant_info['genotype']+'\n'))
 
-#	for ele in variant_info:
-#		#print ele
-#		file_writer.write(str(variant_info[ele])+'\t')
-#	file_writer.write('\n')
+	for ele in variant_info:
+		#print ele
+		file_writer.write(str(variant_info[ele])+'\t')
+	file_writer.write('\n')
 
 
 def input_pyclone(patient_map, name):
@@ -337,7 +337,7 @@ def main():
 	for name in names:
 		makedir(name)
 		copyfile_VCF_TXT(name)
-		#copyfile_BAM(name)
+		copyfile_BAM(name)
 		patient_map = '/home/shared_data_core/COLON/subclonality/%s/'% name
 		source = glob.glob(patient_map+'*.vcf')
 		for files in source:
