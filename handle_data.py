@@ -334,8 +334,12 @@ def input_pyclone(patient_map, name):
 		next(r)
 		for line in r:
 			w.write(line)
-	print "File: PYCLONE_input_%s.tsv \t \t READY!"% name
+	print "File: PYCLONE_input_%s.tsv \t READY!"% name
 	w.close()
+
+
+def prep_config_file():
+		
 			
 
 	
@@ -374,6 +378,7 @@ def main():
 
 		file_writer.close()
 		input_pyclone(patient_map, name)
+		prep_config_file()
 	  	
    	logging.info('Finished')
 	
