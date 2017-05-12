@@ -81,7 +81,7 @@ def sample_names(short2):
 	for line in sample:
 		parts = line.split()		
 		if len(parts) > 0:   		
-		    result.append(parts[4])	#print column 4
+		    result.append(parts[4])
 
 	#print result
 	names = []
@@ -113,12 +113,13 @@ def copyfile_VCF_TXT(name):
 	#print destination	
 	for files in source:
 		if  files.endswith('.vcf'):
-			#if not os.path.isfiles('/home/shared_data_core/COLON/subclonality/%s/')):
-			shutil.copy2(os.path.abspath(files),destination)
+			if not os.path.exists(os.path.join(destination,files.split('/')[7])):
+				shutil.copy2(os.path.abspath(files),destination)
+
 	print "All VCF's copied for %s!"% name
 	
 	
-	source1 = glob.glob('/home/shared_data_core/COLON/subclonality/CNV/*_%s_*.txt'% name)		#be carefull with glob.glob, elements in list!
+	source1 = glob.glob('/home/shared_data_core/COLON/subclonality/CNV/*_%s_*.txt'% name)
 	#print source1	
 		
 	destination1 = '/home/shared_data_core/COLON/subclonality/%s/'% name
@@ -133,11 +134,17 @@ def copyfile_VCF_TXT(name):
 			print "Transferring CNV file"
 			cnv_file = 1
 
-	except IndexError, e:
+
+	except IndexError,e:
 		print "No CNV file. %s"% e
+		logging.error("No CNV file present!!!")
 		cnv_file = 0
 
-	#print cnv_file 
+	if cnv_file == 0:
+		print "No CNV file."
+		logging.error("CNV file missing for :"+files.split('/')[7]+"!!!")
+		cnv_file = 0
+
 	return cnv_file
 		
 				
@@ -151,12 +158,14 @@ def copyfile_BAM(name):
 	destination = '/home/shared_data_core/COLON/subclonality/%s/'% name
 	for BAM in BAMS:
 		if BAM.endswith('.bam'):
-			shutil.copy2(os.path.abspath(BAM),destination)
+			if not os.path.exists(os.path.join(destination,BAM.split('/')[5])):
+				shutil.copy2(os.path.abspath(BAM),destination)
 	print "All BAM's copied for %s!"% name
 	
 	for BAI in BAIS:
 		if BAI.endswith('.bai'):
-			shutil.copy2(os.path.abspath(BAI),destination)
+			if not os.path.exists(os.path.join(destination,BAI.split('/')[5])):
+				shutil.copy2(os.path.abspath(BAI),destination)
 	print "All BAI's copied for %s!"% name
 
 
@@ -326,6 +335,17 @@ def input_pyclone(patient_map, name):
 
 ##controllable
 def main():
+	logging.basicConfig(filename=os.path.dirname(os.path.realpath(__file__))+'/log.txt',
+                    filemode='w',
+                    format='%(asctime)s \t-\t %(name)s \t-\t %(levelname)s \t-\t %(message)s',
+                    datefmt='%d/%m/%Y %I:%M:%S',
+                    level=logging.NOTSET)
+	stderrLogger = logging.StreamHandler()
+	stderrLogger.setFormatter(logging.Formatter('%(asctime)s \t-\t %(name)s \t-\t %(levelname)s \t-\t %(message)s'))
+	logging.getLogger().addHandler(stderrLogger)
+	logging.debug('Log initiated')
+	logging.info('Started')
+
 	text_file = '/home/shared_data_core/COLON/subclonality/paired_samples_nele_purity_all_runs_short.txt'
 	short2 = '/home/shared_data_core/COLON/subclonality/Klinischegegegeven_patienten_ITH_20151110.csv'
 	info_file = '/home/shared_data_core/COLON/subclonality/info_file.txt'
@@ -338,7 +358,7 @@ def main():
 	for name in names:
 		makedir(name)
 		copyfile_VCF_TXT(name)
-		#copyfile_BAM(name)
+		copyfile_BAM(name)
 		patient_map = '/home/shared_data_core/COLON/subclonality/%s/'% name
 		source = glob.glob(patient_map+'*.vcf')
 		for files in source:
@@ -347,7 +367,8 @@ def main():
 
 		file_writer.close()
 		input_pyclone(patient_map, name)
-	
+	  	
+   	logging.info('Finished')
 	
 
 if __name__ == "__main__":
