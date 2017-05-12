@@ -103,6 +103,7 @@ def makedir(name):
 		print "Directory: %s is created!"% name
 	else:
 		print "Directory: %s already exist!"% name
+		logging.info("Directory: %s already exist!"% name)
 
 
 ##copy .vcf files to patientdirectory
@@ -115,6 +116,8 @@ def copyfile_VCF_TXT(name):
 		if  files.endswith('.vcf'):
 			if not os.path.exists(os.path.join(destination,files.split('/')[7])):
 				shutil.copy2(os.path.abspath(files),destination)
+#			else:
+#				logging.info("File: "+files.split('/')[7]+" already exist!")
 
 	print "All VCF's copied for %s!"% name
 	
@@ -160,12 +163,17 @@ def copyfile_BAM(name):
 		if BAM.endswith('.bam'):
 			if not os.path.exists(os.path.join(destination,BAM.split('/')[5])):
 				shutil.copy2(os.path.abspath(BAM),destination)
+#			else:
+#				logging.info("File: "+BAM.split('/')[5]+" already exist!")
+
 	print "All BAM's copied for %s!"% name
 	
 	for BAI in BAIS:
 		if BAI.endswith('.bai'):
 			if not os.path.exists(os.path.join(destination,BAI.split('/')[5])):
 				shutil.copy2(os.path.abspath(BAI),destination)
+#			else:
+#				logging.info("File: "+BAI.split('/')[5]+" already exist!")
 	print "All BAI's copied for %s!"% name
 
 
@@ -344,7 +352,6 @@ def main():
 	stderrLogger.setFormatter(logging.Formatter('%(asctime)s \t-\t %(name)s \t-\t %(levelname)s \t-\t %(message)s'))
 	logging.getLogger().addHandler(stderrLogger)
 	logging.debug('Log initiated')
-	logging.info('Started')
 
 	text_file = '/home/shared_data_core/COLON/subclonality/paired_samples_nele_purity_all_runs_short.txt'
 	short2 = '/home/shared_data_core/COLON/subclonality/Klinischegegegeven_patienten_ITH_20151110.csv'
