@@ -334,8 +334,12 @@ def input_pyclone(patient_map, name):
 		next(r)
 		for line in r:
 			w.write(line)
-	print "File: PYCLONE_input_%s.tsv \t \t READY!"% name
+	print "File: PYCLONE_input_%s.tsv \t READY!"% name
 	w.close()
+
+
+def prep_config_file():
+		
 			
 
 	
@@ -352,7 +356,6 @@ def main():
 	stderrLogger.setFormatter(logging.Formatter('%(asctime)s \t-\t %(name)s \t-\t %(levelname)s \t-\t %(message)s'))
 	logging.getLogger().addHandler(stderrLogger)
 	logging.debug('Log initiated')
-	logging.info('Started')
 
 	text_file = '/home/shared_data_core/COLON/subclonality/paired_samples_nele_purity_all_runs_short.txt'
 	short2 = '/home/shared_data_core/COLON/subclonality/Klinischegegegeven_patienten_ITH_20151110.csv'
@@ -375,6 +378,7 @@ def main():
 
 		file_writer.close()
 		input_pyclone(patient_map, name)
+		prep_config_file()
 	  	
    	logging.info('Finished')
 	
