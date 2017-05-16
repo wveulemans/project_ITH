@@ -27,7 +27,7 @@ def mk_info_file(short2, text_file):
 	next(r_sample)
 
 	w = open('info_file.txt', 'wb')
-	w.write('normal_sample_name\ttumor_sample_name\tanalysis_type\tsample_file_directory\tsample_label\tsomatic_callers\tnormal_fraction\ttumor_fraction\tgender\tdate_of_birth\tamount_PT\tage_sample_taken\n')
+	w.write('normal_sample_name\ttumor_sample_name\tanalysis_type\tsample_file_directory\tsample_label\tsomatic_callers\tnormal_fraction\ttumor_fraction\tgender\tdate_of_birth\tamount_PT\tage_sample_taken\ttumor_fraction\n')
 
 	patient_info = OD([
 			('normal_sample_name', str()),
@@ -41,7 +41,7 @@ def mk_info_file(short2, text_file):
 			('gender', str()),
 			('date_of_birth', str()),
 			('amount_PT', str()),
-			('age_sample_taken', str())
+			('age_sample_taken', str()),
 			])    	
 	
 	for line in r_sample:
@@ -69,7 +69,6 @@ def mk_info_file(short2, text_file):
 					w.write(str(patient_info[x])+'\t')
 				w.write('\n')
 	w.close
-
 
 ##mkdir per patient
 def sample_names(short2):
@@ -324,21 +323,89 @@ def tsv_writer(variant_info, file_writer):
 	file_writer.write('\n')
 
 
-def input_pyclone(patient_map, name):
-	source = glob.glob(patient_map+'pyclone*')
-	w = open('/home/shared_data_core/COLON/subclonality/%s/PYCLONE_input_%s.tsv'% (name, name), 'wb')
-	w.write('mutation_id\tref_counts\tvar_counts\tnormal_cn\tminor_cn\tmajor_cn\tvariant_case\tvariant_freq\tgenotype\n')
+def input_files(patient_map, name, files):
+	patient_name = '_'.join(os.path.basename(files).split('_')[3:7])
+	
+	variant_types = ['snp','indel']
+	vcf_files = list()
+	for variant_type in variant_types:
+		vcf_files.append(glob.glob(patient_map+'*'+patient_name+'*'+variant_type+'*.vcf.tsv'))
+	#print patient_name+'\t::',vcf_files
+	
+	return patient_name, vcf_files
+
+		
+
+def input_tsv(patient_map, name, patient_name, vcf_files):
+	#if not os.path.exists(os.path.join(patient_map+'PYCLONE_input_%s.tsv'% patient_name)):
+	if '%s'% name in patient_name:
+		if not '.tsv' in patient_name:
+			w = open('/home/shared_data_core/COLON/subclonality/%s/PYCLONE_input_%s.tsv'% (name, patient_name), 'wb')
+			w.write('mutation_id\tref_counts\tvar_counts\tnormal_cn\tminor_cn\tmajor_cn\tvariant_case\tvariant_freq\tgenotype\n')
+			for f in vcf_files:
+				for i in f:
+					r = open(i, 'rb')
+					next(r)
+					for line in r:
+						w.write(line)
+			print "File: PYCLONE_input_%s.tsv \t READY!"% patient_name
+			w.close()
+
+
+def prep_config_file(name, patient_name, patient_map):
+	w = open('/home/shared_data_core/COLON/subclonality/%s/config_file_%s'% (name,name), 'wb')	
+	#w.write('# Specifies working directory for analysis. All paths in the rest of the file are relative to this.\n')
+	w.write('working_dir: /home/shared_data_core/COLON/subclonality/\n')
+	
+	#w.write('\n# Where the trace (output) from the PyClone MCMC analysis will be written.\n')
+	w.write('trace_dir:/%s/\n'% name)
+
+	#w.write('\n# Specifies which density will be used to model read counts. Most people will want pyclone_beta_binomial or pyclone_binomial\n')
+	w.write('density: pyclone_beta_binomial\n')
+
+	#w.write('\n# Number of iterations of the MCMC chain.\n')
+	w.write('num_iters: 10000\n')
+
+	#w.write('\n# Specifies parameters in Beta base measure for DP. Most people will want the values below.\n')
+	w.write('base_measure_params:\n\talpha: 1\n\tbeta: 1\n')
+
+	#w.write('\n# Specifies initial values and prior parameters for the prior on the concentration (alpha) parameter in the DP. If the prior node is not set the concentration will not be estimated and the specified value will be used.\n')
+	w.write('concentration:\n\t')
+	
+	#w.write('# Initial value if prior is set, or fixed value otherwise for concentration parameter.\n\t')
+	w.write('value: 1.0\n')
+	
+	#w.write('\n# Specifies the parameters in the Gamma prior over the concentration parameter\n')
+	w.write('\tprior: \n\t\tshape: 1.0\n\t\trate: 0.001\n')
+
+	#w.write('\n# Specify the samples for the analysis.\n')
+	w.write('samples: \n')
+
+##########################################################################################################for loop
+
+	source = glob.glob(patient_map+'*')
 	for files in source:
-		#print files
-		r = open(files, 'rb')
-		next(r)
-		for line in r:
-			w.write(line)
-	print "File: PYCLONE_input_%s.tsv \t READY!"% name
-	w.close()
+		if 'PYCLONE' in files:
+			sample_name = (('_'.join(files.split('_')[4:8])).split('.')[0])
+			
+			#w.write('\t# Unique sample ID.\n')
+			w.write('\t%s: \n'% sample_name)
 
+			#w.write('\t\t# Path where tsv formatted mutations file for the sample is placed.\n')
+			w.write('\t\tmutations_file: %s/PYCLONE_input_%s.tsv\n\n'% (name,sample_name))
+			
+			w.write('\t\ttumour_content:\n')
+			#w.write('\t\t\t# The predicted tumour content for the sample. If you have no estimate set this to 1.0.\n')
+			r = open('/home/shared_data_core/COLON/subclonality/paired_samples_nele_purity_all_runs_short.txt')
+			next(r)
+			for line in r:
+				if (line.split('\t')[1]).split('_', 2)[2] == sample_name:
+					w.write('\t\t\tvalue: '+line.split('\t')[7].split('\n')[0]+'\n')
+					#w.write('\t\t# Expected sequencing error rate for sample.\n')
+					w.write('\t\terror_rate: 0.001\n\n')	
 
-def prep_config_file():
+	w.close
+	
 		
 			
 
@@ -365,6 +432,7 @@ def main():
 	to_lower(short2)
 	mk_info_file(short2, text_file)
 	names = sample_names(text_file)
+
 	
 	for name in names:
 		makedir(name)
@@ -377,8 +445,11 @@ def main():
 			read_vcf(variant_info,files,cnv_file,name,file_writer,short2,info_file)
 
 		file_writer.close()
-		input_pyclone(patient_map, name)
-		prep_config_file()
+		source = source = glob.glob(patient_map+'*.tsv') 
+		for files in source:
+			patient_name, vcf_files = input_files(patient_map, name, files)
+			input_tsv(patient_map, name, patient_name, vcf_files)
+		prep_config_file(name, patient_name, patient_map)
 	  	
    	logging.info('Finished')
 	
