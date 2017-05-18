@@ -5,6 +5,8 @@ import glob
 import shutil
 import vcf
 import time
+import stat
+import subprocess
 import logging
 from collections import OrderedDict as OD
 
@@ -41,7 +43,7 @@ def mk_info_file(short2, text_file):
 	"""
 
 	r_sample = open(text_file, 'rb')
-	next(r_sample)
+	next(r_sample) #skip header
 
 	w = open('info_file.txt', 'wb')
 	w.write('normal_sample_name\ttumor_sample_name\tanalysis_type\tsample_file_directory\tsample_label\tsomatic_callers\tnormal_fraction\ttumor_fraction\tgender\tdate_of_birth\tamount_PT\tage_sample_taken\ttumor_fraction\n')
@@ -73,7 +75,7 @@ def mk_info_file(short2, text_file):
 
 		r_info = open(short2, 'rb')
 		reader = csv.reader(r_info, delimiter=',')
-		next(reader)
+		next(reader)	#skip header
 		for line in reader:
 			if line[0] == patient_info['normal_sample_name'].split('_')[2]:
 				patient_info['gender'] = line[6]
@@ -100,7 +102,7 @@ def sample_names(paired_samples):
 	result=[]
 
 	sample = open(paired_samples, 'r')
-	next(sample)
+	next(sample) #skip header
 
 	for line in sample:
 		parts = line.split()		
@@ -238,29 +240,29 @@ def prep_tsv(name,files):
 
 	"""
 
-	parts = []			
+	parts = []		
 	parts = files.split("/")[6]
 	#print parts
 
 	
 	file_writer = open('/home/shared_data_core/COLON/subclonality/%s/pyclone_%s.tsv'% (name,parts),'w+')
-	file_writer.write('mutation_id\tref_counts\tvar_counts\tnormal_cn\tminor_cn\tmajor_cn\tvariant_case\tvariant_freq\tgenotype\n')	#add header to outfile
+	file_writer.write('mutation_id\tref_counts\tvar_counts\tnormal_cn\tminor_cn\tmajor_cn\tvariant_case\tvariant_freq\tgenotype\n')	# add header to outfile
 
 	global variant_info
 	variant_info = OD([
-		('mutation_id', str()),		#unique id for every mutation
-		('ref_counts', int()),		#number of reads covering the mutation which contain the reference (genome) allele
-		('var_counts', int()),		#number of reads covering the mutation which contain the variant allele
-		('normal_cn', int()),		#copy number of the cells in the normal population. For autosomal chromosomes this will be 2 and for sex chromosomes it could be either 1 or 2
-		('minor_cn', int()),		#minor copy number of the cancer cells. Usually this value will be predicted from WGSS or array data
-		('major_cn', str()), 		#major copy number of the cancer cells. Usually this value will be predicted from WGSS or array data
-		('variant_case', str(name)),	#patient_name
+		('mutation_id', str()),		# unique id for every mutation
+		('ref_counts', int()),		# number of reads covering the mutation which contain the reference (genome) allele
+		('var_counts', int()),		# number of reads covering the mutation which contain the variant allele
+		('normal_cn', int()),		# copy number of the cells in the normal population. For autosomal chromosomes this will be 2 and for sex chromosomes it could be either 1 or 2
+		('minor_cn', int()),		# minor copy number of the cancer cells. Usually this value will be predicted from WGSS or array data
+		('major_cn', str()), 		# major copy number of the cancer cells. Usually this value will be predicted from WGSS or array data
+		('variant_case', str(name)),	# patient_name
 		('variant_freq', float()),	# 1 - (ref_counts/(ref_counts + var_counts))
-		('genotype', str()),		#genotype of the mutation
-		('nr', int()), 			#count per mutation
-		('chr', str()), 		#chromosome where mutations lies
-		('pos', int()),			#position on chromosome
-		('origin',str())		#pt = primary tumor or m = metases
+		('genotype', str()),		# genotype of the mutation
+		('nr', int()), 			# count per mutation
+		('chr', str()), 		# chromosome where mutations lies
+		('pos', int()),			# position on chromosome
+		('origin',str())		# pt = primary tumor or m = metases
 	])
 
 	return variant_info,file_writer
@@ -282,13 +284,9 @@ def read_vcf(variant_info,files,cnv_file,name,file_writer,short2,info_file):
 	char1 = file_name.split('_')[3]
 	char2 = file_name.split('_')[4] 
 	origin_tum = file_name.split('_')[5]
-	#print origin_tum
-	#if origin_tum.count('.') > 0:
-	#	variant_info['origin'] = origin_tum.split('.')[0]
-	#else:
-	#	variant_info['origin'] = name+'_'+char1+'_'+char2+':'+origin_tum
-	variant_info['origin'] = name+'_'+char1+'_'+char2+'_'+origin_tum	
 	
+	variant_info['origin'] = name+'_'+char1+'_'+char2+'_'+origin_tum	
+	#print variant_info['origin']
 	vcf_reader = vcf.Reader(open('%s'% files, 'r'))
 	for record in vcf_reader:
 		#print record
@@ -304,9 +302,9 @@ def read_vcf(variant_info,files,cnv_file,name,file_writer,short2,info_file):
 			sys.exit(0)
 		#print variant_info['ref_counts']
 		#print variant_info['var_counts']
-		if variant_info['chr'] == 'chrX' or variant_info['chr'] == 'chrY':			##ATTENTION: sex chromosomes have different copynumber!!!
+		if variant_info['chr'] == 'chrX' or variant_info['chr'] == 'chrY':			# Checks if sexchromosome then check the gender
 			r = open(info_file, 'rb')
-			next(r)
+			next(r)	#skip header
 
 			for row in r:
 				#print row.split()[8]
@@ -344,15 +342,23 @@ def read_vcf(variant_info,files,cnv_file,name,file_writer,short2,info_file):
 		
 
 def read_cnv(cnv_file, name, variant_info):
+	"""
+		Input: CNV files
+		----------
+	    	Function: extract parameters out of CNV file
+		----------
+		Output: fills the dictionnary in, 2 def's above
+
+	"""
+
 	range_pos_all = list()	
 	range_pos = dict()
 	if cnv_file == True:
-		#os.chdir('/home/shared_data_core/COLON/subclonality/%s/'% name)
 		source = glob.glob('/home/shared_data_core/COLON/subclonality/%s/X.home.*%s*'% (name, variant_info['origin']))
 		for files in source:
 			#print files
 			present = open(files, 'rb')			
-			next(present) #skip header
+			next(present)	#skip header
 
 			for line in present:
 				if float(line.split('\t')[4]) <= 6:
@@ -378,16 +384,24 @@ def read_cnv(cnv_file, name, variant_info):
 					else:
 						range_pos['cnv_state'] = str(line.split('\t')[4])
 						range_pos_all.append(range_pos)
-#				else:
-#					logging.warning("major_cn: "+line.split('\t')[4]+" !ARTEFACT!\t"+str(line.split('\t')[0:5]))
-	
-	#print range_pos['gene_id']+'\t'+range_pos['begin']+'\t'+range_pos['end']#{str(line.split('\t' )[0]): dict()}
+				else:
+					logging.warning("major_cn: "+line.split('\t')[4]+" !ARTEFACT!---"+str(line.split('\t')[0:5]))
 
 	return range_pos_all
 
+
+
 def compare(range_pos_all,variant_info, file_writer, name):
+	"""
+		Input: parameters from CNV file
+		----------
+	    	Function: see of the position of the mutation lays in the gene 
+		----------
+		Output: fills the dictionnary in, 2 def's above (variant_info[mutation_id])
+
+	"""
+
 	for gene_dict in range_pos_all:
-		#print gene_dict, type(gene_dict['begin'])
 		if gene_dict['begin'] <= variant_info['pos'] and variant_info['pos'] <= gene_dict['end'] and variant_info['chr'] == gene_dict['chr']:	
 			variant_info['major_cn'] = gene_dict['cnv_state']		
 			#print "Mutation lies in %s"% gene_dict['gene_id'] 
@@ -396,7 +410,14 @@ def compare(range_pos_all,variant_info, file_writer, name):
 
 
 def tsv_writer(variant_info, file_writer):
-#	file_writer.write(str(variant_info['mutation_id']+'\t'+variant_info['ref_counts']+'\t'+variant_info['var_counts']+'\t'+variant_info['normal_cn']+'\t'+variant_info['minor_cn']+'\t'+variant_info['major_cn']+'\t'+variant_info['variant_case']+'\t'+variant_info['variant_freq']+'\t'+variant_info['genotype']+'\n'))
+	"""
+		Input: dictionary variant_info, contains information about mutation
+		----------
+	    	Function: write in file
+		----------
+		Output: '/home/shared_data_core/COLON/subclonality/patient_name/pyclone...vcf.tsv'
+
+	"""
 
 	for ele in variant_info:
 		#print ele
@@ -404,21 +425,38 @@ def tsv_writer(variant_info, file_writer):
 	file_writer.write('\n')
 
 
-def input_files(patient_map, name, files):
+def input_files(patient_dir, name, files):
+	"""
+		Input: all files from patient_directory
+		----------
+	    	Function: make a list with correct TSV for PyClone input 
+		----------
+		Output: list with correct TSV files
+
+	"""
+
 	patient_name = '_'.join(os.path.basename(files).split('_')[3:7])
 	
 	variant_types = ['snp','indel']
 	vcf_files = list()
 	for variant_type in variant_types:
-		vcf_files.append(glob.glob(patient_map+'*'+patient_name+'*'+variant_type+'*.vcf.tsv'))
-	#print patient_name+'\t::',vcf_files
+		vcf_files.append(glob.glob(patient_dir+'*'+patient_name+'*'+variant_type+'*.vcf.tsv'))
 	
 	return patient_name, vcf_files
 
 		
 
-def input_tsv(patient_map, name, patient_name, vcf_files):
-	#if not os.path.exists(os.path.join(patient_map+'PYCLONE_input_%s.tsv'% patient_name)):
+def input_tsv(patient_dir, name, patient_name, vcf_files):
+	"""
+		Input: list with input files for the actual mutation_informationfile.tsv
+		----------
+	    	Function: make actual mutation_informationfile.tsv
+		----------
+		Output: PYCLONE....tsv, ready for PyClone
+
+	"""
+
+	#if not os.path.exists(os.path.join(patient_dir+'PYCLONE_input_%s.tsv'% patient_name)):
 	if '%s'% name in patient_name:
 		if not '.tsv' in patient_name:
 			w = open('/home/shared_data_core/COLON/subclonality/%s/PYCLONE_input_%s.tsv'% (name, patient_name), 'wb')
@@ -426,14 +464,21 @@ def input_tsv(patient_map, name, patient_name, vcf_files):
 			for f in vcf_files:
 				for i in f:
 					r = open(i, 'rb')
-					next(r)
+					next(r)	#skip header
 					for line in r:
 						w.write(line)
 			print "File: PYCLONE_input_%s.tsv \t READY!"% patient_name
 			w.close()
 
 
-def prep_config_file(name, patient_name, patient_map):
+def prep_config_file(name, patient_name, patient_dir):
+	"""
+	    	Function: makes a configuration_file for every patient_name 
+		----------
+		Output: '/home/shared_data_core/COLON/subclonality/patient_name/config_file_patient_name' 
+
+	"""
+
 	w = open('/home/shared_data_core/COLON/subclonality/%s/config_file_%s'% (name,name), 'wb')	
 	#w.write('# Specifies working directory for analysis. All paths in the rest of the file are relative to this.\n')
 	w.write('working_dir: /home/shared_data_core/COLON/subclonality/\n')
@@ -464,7 +509,7 @@ def prep_config_file(name, patient_name, patient_map):
 
 ##########################################################################################################for loop
 
-	source = glob.glob(patient_map+'*')
+	source = glob.glob(patient_dir+'*')
 	for files in source:
 		if 'PYCLONE' in files:
 			sample_name = (('_'.join(files.split('_')[4:8])).split('.')[0])
@@ -473,7 +518,7 @@ def prep_config_file(name, patient_name, patient_map):
 			w.write('\t%s: \n'% sample_name)
 
 			#w.write('\t\t# Path where tsv formatted mutations file for the sample is placed.\n')
-			w.write('\t\tmutations_file: %s/PYCLONE_input_%s.tsv\n\n'% (name,sample_name))
+			w.write('\t\tmutations_file: %s/PYCLONE_input_%s.tsv.yaml\n\n'% (name,sample_name))
 			
 			w.write('\t\ttumour_content:\n')
 			#w.write('\t\t\t# The predicted tumour content for the sample. If you have no estimate set this to 1.0.\n')
@@ -487,6 +532,53 @@ def prep_config_file(name, patient_name, patient_map):
 
 	w.close
 	
+
+def prep_bash(name):
+	"""
+	    	Function: makes a bash_file for every patient_name 
+		----------
+		Output: '/home/shared_data_core/COLON/subclonality/patient_name/pyclone_bash_patient_name.sh'
+
+	"""
+	
+	if os.path.exists('/home/shared_data_core/COLON/subclonality/%s/pyclone_bash_%s.sh'% (name,name)):
+		logging.info("Bash_file: pyclone_bash_%s.sh already exist!"% name)
+	else:				
+		w = open('/home/shared_data_core/COLON/subclonality/%s/pyclone_bash_%s.sh'% (name,name), 'wb')
+		w.write('#!/bin/bash\n')
+		w.write('#WVeulemans\n\n')
+		w.write('WORKING_DIR= "/home/shared_data_core/COLON/subclonality/%s/"\n\n'% name)
+		w.write('echo -e "#!/bin/bash\n#PBS -X\n#PBS -N pAmpli_$tumor_sample_name\n#PBS -l nodes=1:ppn=8,mem=4g,walltime=01:00:00\n#PBS -m ea\n#PBS -M ward.veulemans@student.howest.be\n#PBS -q scattergather\n#PBS -A onco\n"\n\n')
+
+		source = glob.glob('/home/shared_data_core/COLON/subclonality/%s/*'% name)
+		for files in source:
+			inputs = files.split('/')[6]
+			if 'PYCLONE_input' in inputs:
+				w.write('echo `PyClone build_mutations_file --in_file '+inputs+' --out_file '+inputs+'.yaml`\n')
+
+		w.write('\n#echo `PyClone run_analysis config_file_%s`\n'% name)
+		w.close()
+	
+	global bash_file
+	bash_file = '/home/shared_data_core/COLON/subclonality/%s/pyclone_bash_%s.sh'% (name,name)
+
+	return 	bash_file
+
+def run_bash(bash_file, name):
+	"""
+	    	Function: runs bash_file per patient_name (converts TSV to YAML)
+		----------
+		Output:	- converted TSV '/home/shared_data_core/COLON/subclonality/patient_name/PYCLONE_input_patient_sample.tsv.yaml'
+			- outfile '...'
+
+	"""
+
+	os.chdir('/home/shared_data_core/COLON/subclonality/%s/'% name)
+	os.chmod('pyclone_bash_%s.sh'% name, 0755)
+	subprocess.call('./pyclone_bash_%s.sh'% name)
+	os.stat('pyclone_bash_%s.sh'% name)
+	
+		
 		
 			
 
@@ -519,18 +611,20 @@ def main():
 		makedir(name)
 		copyfile_VCF_TXT(name)
 		copyfile_BAM(name)
-		patient_map = '/home/shared_data_core/COLON/subclonality/%s/'% name
-		source = glob.glob(patient_map+'*.vcf')
+		patient_dir = '/home/shared_data_core/COLON/subclonality/%s/'% name
+		source = glob.glob(patient_dir+'*.vcf')
 		for files in source:
 			variant_info,file_writer = prep_tsv(name,files)
 			read_vcf(variant_info,files,cnv_file,name,file_writer,short2,info_file)
 
 		file_writer.close()
-		source = source = glob.glob(patient_map+'*.tsv') 
+		source = source = glob.glob(patient_dir+'*.tsv') 
 		for files in source:
-			patient_name, vcf_files = input_files(patient_map, name, files)
-			input_tsv(patient_map, name, patient_name, vcf_files)
-		prep_config_file(name, patient_name, patient_map)
+			patient_name, vcf_files = input_files(patient_dir, name, files)
+			input_tsv(patient_dir, name, patient_name, vcf_files)
+		prep_config_file(name, patient_name, patient_dir)
+		prep_bash(name)
+		run_bash(bash_file, name)
 	 	
 	
    	logging.info('Finished')
