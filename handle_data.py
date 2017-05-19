@@ -1,6 +1,6 @@
 #! /usr/bin/python
 import os, sys
-import csv	#knows where it has stopped
+import csv	# knows where it has stopped in file
 import glob
 import shutil
 import vcf
@@ -43,7 +43,7 @@ def mk_info_file(short2, text_file):
 	"""
 
 	r_sample = open(text_file, 'rb')
-	next(r_sample) #skip header
+	next(r_sample) # skip header
 
 	w = open('info_file.txt', 'wb')
 	w.write('normal_sample_name\ttumor_sample_name\tanalysis_type\tsample_file_directory\tsample_label\tsomatic_callers\tnormal_fraction\ttumor_fraction\tgender\tdate_of_birth\tamount_PT\tage_sample_taken\ttumor_fraction\n')
@@ -75,7 +75,7 @@ def mk_info_file(short2, text_file):
 
 		r_info = open(short2, 'rb')
 		reader = csv.reader(r_info, delimiter=',')
-		next(reader)	#skip header
+		next(reader)	# skip header
 		for line in reader:
 			if line[0] == patient_info['normal_sample_name'].split('_')[2]:
 				patient_info['gender'] = line[6]
@@ -102,7 +102,7 @@ def sample_names(paired_samples):
 	result=[]
 
 	sample = open(paired_samples, 'r')
-	next(sample) #skip header
+	next(sample) # skip header
 
 	for line in sample:
 		parts = line.split()		
@@ -358,7 +358,7 @@ def read_cnv(cnv_file, name, variant_info):
 		for files in source:
 			#print files
 			present = open(files, 'rb')			
-			next(present)	#skip header
+			next(present)	# skip header
 
 			for line in present:
 				if float(line.split('\t')[4]) <= 6:
@@ -385,7 +385,7 @@ def read_cnv(cnv_file, name, variant_info):
 						range_pos['cnv_state'] = str(line.split('\t')[4])
 						range_pos_all.append(range_pos)
 				else:
-					logging.warning("major_cn: "+line.split('\t')[4]+" !ARTEFACT!---"+str(line.split('\t')[0:5]))
+					logging.warning("major_cn: "+line.split('\t')[4]+" !ARTEFACT!-----"+str(line.split('\t')[0:5]))
 
 	return range_pos_all
 
@@ -405,7 +405,7 @@ def compare(range_pos_all,variant_info, file_writer, name):
 		if gene_dict['begin'] <= variant_info['pos'] and variant_info['pos'] <= gene_dict['end'] and variant_info['chr'] == gene_dict['chr']:	
 			variant_info['major_cn'] = gene_dict['cnv_state']		
 			#print "Mutation lies in %s"% gene_dict['gene_id'] 
-			variant_info['mutation_id'] = name+':'+variant_info['genotype']+':'+gene_dict['gene_id']+':'+variant_info['chr']+':'+str(variant_info['pos'])+':'+str(variant_info['origin'])
+			variant_info['mutation_id'] = name+':'+variant_info['genotype']+':'+gene_dict['gene_id']+':'+variant_info['chr']+':'+str(variant_info['pos'])
 			tsv_writer(variant_info, file_writer)
 
 
@@ -419,10 +419,40 @@ def tsv_writer(variant_info, file_writer):
 
 	"""
 
-	for ele in variant_info:
+	a11 = variant_info.keys()
+
+	for ele in a11[0:9]:
 		#print ele
 		file_writer.write(str(variant_info[ele])+'\t')
 	file_writer.write('\n')
+
+
+
+def empty_files(name, files):
+	"""
+		Input: preprocessed pyclone files (ex: pyclone_ith_run3_a_1_3_pt_filter1_indel.vcf.tsv)
+		----------
+	    	Function: check if files are empty and write log
+		----------
+		Output: if file empty ==> state = False
+
+	"""
+
+	global pyclone_file
+	pyclone_file = 1
+	
+	# find all preprocessed pyclone files
+	if 'pyclone_ith' in files:
+		r = open(files, 'rb')
+		# amount of bytes if only header is present in file
+		EOH = r.seek(97)
+
+		if len(r.read()) == 0:
+			pyclone_file = 0
+			logging.info("File: "+files.split('/', 6)[6]+" empty!")
+	
+	return pyclone_file
+		
 
 
 def input_files(patient_dir, name, files):
@@ -457,18 +487,19 @@ def input_tsv(patient_dir, name, patient_name, vcf_files):
 	"""
 
 	#if not os.path.exists(os.path.join(patient_dir+'PYCLONE_input_%s.tsv'% patient_name)):
-	if '%s'% name in patient_name:
-		if not '.tsv' in patient_name:
-			w = open('/home/shared_data_core/COLON/subclonality/%s/PYCLONE_input_%s.tsv'% (name, patient_name), 'wb')
-			w.write('mutation_id\tref_counts\tvar_counts\tnormal_cn\tminor_cn\tmajor_cn\tvariant_case\tvariant_freq\tgenotype\n')
-			for f in vcf_files:
-				for i in f:
-					r = open(i, 'rb')
-					next(r)	#skip header
-					for line in r:
-						w.write(line)
-			print "File: PYCLONE_input_%s.tsv \t READY!"% patient_name
-			w.close()
+	if pyclone_file == True:
+		if '%s'% name in patient_name:
+			if not '.tsv' in patient_name:
+				w = open('/home/shared_data_core/COLON/subclonality/%s/PYCLONE_input_%s.tsv'% (name, patient_name), 'wb')
+				w.write('mutation_id\tref_counts\tvar_counts\tnormal_cn\tminor_cn\tmajor_cn\tvariant_case\tvariant_freq\tgenotype\n')
+				for f in vcf_files:
+					for i in f:
+						r = open(i, 'rb')
+						next(r)	#skip header
+						for line in r:
+							w.write(line)
+				print "File: PYCLONE_input_%s.tsv \t READY!"% patient_name
+				w.close()
 
 
 def prep_config_file(name, patient_name, patient_dir):
@@ -479,33 +510,49 @@ def prep_config_file(name, patient_name, patient_dir):
 
 	"""
 
-	w = open('/home/shared_data_core/COLON/subclonality/%s/config_file_%s'% (name,name), 'wb')	
+	w = open('/home/shared_data_core/COLON/subclonality/%s/config_file_%s.yaml'% (name,name), 'wb')	
 	#w.write('# Specifies working directory for analysis. All paths in the rest of the file are relative to this.\n')
-	w.write('working_dir: /home/shared_data_core/COLON/subclonality/\n')
+	w.write('working_dir: /home/shared_data_core/COLON/subclonality/\n\n')
 	
 	#w.write('\n# Where the trace (output) from the PyClone MCMC analysis will be written.\n')
-	w.write('trace_dir:/%s/\n'% name)
+	w.write('trace_dir: %s/\n\n'% name)
 
 	#w.write('\n# Specifies which density will be used to model read counts. Most people will want pyclone_beta_binomial or pyclone_binomial\n')
-	w.write('density: pyclone_beta_binomial\n')
+	w.write('density: pyclone_beta_binomial\n\n')
 
 	#w.write('\n# Number of iterations of the MCMC chain.\n')
-	w.write('num_iters: 10000\n')
+	w.write('num_iters: 1000\n\n')
 
 	#w.write('\n# Specifies parameters in Beta base measure for DP. Most people will want the values below.\n')
-	w.write('base_measure_params:\n\talpha: 1\n\tbeta: 1\n')
+	w.write('base_measure_params:\n')
+	w.write('  alpha: 1\n')
+	w.write('  beta: 1\n\n')
 
 	#w.write('\n# Specifies initial values and prior parameters for the prior on the concentration (alpha) parameter in the DP. If the prior node is not set the concentration will not be estimated and the specified value will be used.\n')
-	w.write('concentration:\n\t')
+	w.write('concentration:\n')
 	
 	#w.write('# Initial value if prior is set, or fixed value otherwise for concentration parameter.\n\t')
-	w.write('value: 1.0\n')
+	w.write('  value: 1.0 \n\n')
 	
 	#w.write('\n# Specifies the parameters in the Gamma prior over the concentration parameter\n')
-	w.write('\tprior: \n\t\tshape: 1.0\n\t\trate: 0.001\n')
+	w.write('  prior:\n    shape: 1.0\n    rate: 0.001\n\n')
+
+	#w.write('# Beta-Binomial precision (alpha + beta) prior')
+	w.write('beta_binomial_precision_params:\n')
+	#w.write('# Starting value')
+	w.write('  value: 1000\n\n')
+
+	#w.write('# Parameters for Gamma prior distribution')
+	w.write('  prior:\n')
+	w.write('    shape: 1.0\n')
+	w.write('    rate: 0.0001\n\n')
+
+	#w.write('# Precision of Gamma proposal function for MH step')
+	w.write('  proposal:\n')
+	w.write('    precision: 0.01\n\n')
 
 	#w.write('\n# Specify the samples for the analysis.\n')
-	w.write('samples: \n')
+	w.write('samples:\n')
 
 ##########################################################################################################for loop
 
@@ -515,20 +562,20 @@ def prep_config_file(name, patient_name, patient_dir):
 			sample_name = (('_'.join(files.split('_')[4:8])).split('.')[0])
 			
 			#w.write('\t# Unique sample ID.\n')
-			w.write('\t%s: \n'% sample_name)
+			w.write('  %s: \n'% sample_name)
 
 			#w.write('\t\t# Path where tsv formatted mutations file for the sample is placed.\n')
-			w.write('\t\tmutations_file: %s/PYCLONE_input_%s.tsv.yaml\n\n'% (name,sample_name))
+			w.write('    mutations_file: PYCLONE_input_%s.tsv.yaml\n\n'% sample_name)
 			
-			w.write('\t\ttumour_content:\n')
+			w.write('    tumour_content:\n')
 			#w.write('\t\t\t# The predicted tumour content for the sample. If you have no estimate set this to 1.0.\n')
 			r = open('/home/shared_data_core/COLON/subclonality/paired_samples_nele_purity_all_runs_short.txt')
 			next(r)
 			for line in r:
 				if (line.split('\t')[1]).split('_', 2)[2] == sample_name:
-					w.write('\t\t\tvalue: '+line.split('\t')[7].split('\n')[0]+'\n')
+					w.write('      value: '+line.split('\t')[7].split('\n')[0]+'\n\n')
 					#w.write('\t\t# Expected sequencing error rate for sample.\n')
-					w.write('\t\terror_rate: 0.001\n\n')	
+					w.write('    error_rate: 0.001\n\n')	
 
 	w.close
 	
@@ -541,22 +588,28 @@ def prep_bash(name):
 
 	"""
 	
+	# check if bash file for patient exist
 	if os.path.exists('/home/shared_data_core/COLON/subclonality/%s/pyclone_bash_%s.sh'% (name,name)):
 		logging.info("Bash_file: pyclone_bash_%s.sh already exist!"% name)
+	
+	# if bash not exists, make bash with all necessary lines
 	else:				
 		w = open('/home/shared_data_core/COLON/subclonality/%s/pyclone_bash_%s.sh'% (name,name), 'wb')
 		w.write('#!/bin/bash\n')
 		w.write('#WVeulemans\n\n')
 		w.write('WORKING_DIR= "/home/shared_data_core/COLON/subclonality/%s/"\n\n'% name)
-		w.write('echo -e "#!/bin/bash\n#PBS -X\n#PBS -N pAmpli_$tumor_sample_name\n#PBS -l nodes=1:ppn=8,mem=4g,walltime=01:00:00\n#PBS -m ea\n#PBS -M ward.veulemans@student.howest.be\n#PBS -q scattergather\n#PBS -A onco\n"\n\n')
+		w.write('echo -e "#!/bin/bash\n#PBS -X\t\t\t\t\t\tThe -x option allows the script to be executed in the interactive job and then the job completes\n#PBS -N PyClone$tumor_sample_name\t\tDeclares a name for the job\n#PBS -l nodes=1:ppn=8,mem=4g,walltime=01:00:00\tDefines the resources that are required by the job and establishes a limit to the amount of resource that can be consumed\n#PBS -m ea\t\t\t\t\tmail_options\n#PBS -M ward.veulemans@student.howest.be\tDeclares the list of users to whom mail is sent\n#PBS -q scattergather\t\t\t\tDefines the destination of the job\n#PBS -A onco\t\t\t\t\tDefines the account string associated with the job\n"\n\n')
 
+
+		w.write('echo "Building yaml files"\n')
 		source = glob.glob('/home/shared_data_core/COLON/subclonality/%s/*'% name)
 		for files in source:
 			inputs = files.split('/')[6]
 			if 'PYCLONE_input' in inputs:
 				w.write('echo `PyClone build_mutations_file --in_file '+inputs+' --out_file '+inputs+'.yaml`\n')
 
-		w.write('\n#echo `PyClone run_analysis config_file_%s`\n'% name)
+		w.write('echo "Running pipeline analysis"\n')
+		w.write('\necho `PyClone run_analysis --config_file config_file_%s.yaml`\n'% name)
 		w.close()
 	
 	global bash_file
@@ -564,9 +617,11 @@ def prep_bash(name):
 
 	return 	bash_file
 
+
+
 def run_bash(bash_file, name):
 	"""
-	    	Function: runs bash_file per patient_name (converts TSV to YAML)
+	    	Function: executes bash_file per patient_name (converts TSV to YAML and runs PyClone)
 		----------
 		Output:	- converted TSV '/home/shared_data_core/COLON/subclonality/patient_name/PYCLONE_input_patient_sample.tsv.yaml'
 			- outfile '...'
@@ -574,18 +629,14 @@ def run_bash(bash_file, name):
 	"""
 
 	os.chdir('/home/shared_data_core/COLON/subclonality/%s/'% name)
+	# change rights from bash file
 	os.chmod('pyclone_bash_%s.sh'% name, 0755)
 	subprocess.call('./pyclone_bash_%s.sh'% name)
 	os.stat('pyclone_bash_%s.sh'% name)
-	
-		
-		
-			
 
-	
-				
 
-##controllable
+
+
 def main():
 	logging.basicConfig(filename=os.path.dirname(os.path.realpath(__file__))+'/log.txt',
                     filemode='w',
@@ -620,11 +671,13 @@ def main():
 		file_writer.close()
 		source = source = glob.glob(patient_dir+'*.tsv') 
 		for files in source:
+			empty_files(name, files)
 			patient_name, vcf_files = input_files(patient_dir, name, files)
 			input_tsv(patient_dir, name, patient_name, vcf_files)
 		prep_config_file(name, patient_name, patient_dir)
 		prep_bash(name)
 		run_bash(bash_file, name)
+		print "Patient: "+name+" is analyzed!"
 	 	
 	
    	logging.info('Finished')
