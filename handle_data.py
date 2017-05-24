@@ -34,7 +34,8 @@ def to_lower(short):
 
 def mk_info_file(short2, text_file):
 	"""
-		Input: '/home/shared_data_core/COLON/subclonality/paired_samples_nele_purity_all_runs_short.txt'
+		Input: 	'/home/shared_data_core/COLON/subclonality/paired_samples_nele_purity_all_runs_short.txt' & 
+			'/home/shared_data_core/COLON/subclonality/Klinischegegegeven_patienten_ITH_20151110.csv'
 		----------
 	    	Function: makes new file (info_file.txt), with extra information about sample
 		----------
@@ -384,8 +385,8 @@ def read_cnv(cnv_file, name, variant_info):
 					else:
 						range_pos['cnv_state'] = str(line.split('\t')[4])
 						range_pos_all.append(range_pos)
-				else:
-					logging.warning("major_cn: "+line.split('\t')[4]+" !ARTEFACT!-----"+str(line.split('\t')[0:5]))
+				#else:
+					#logging.warning("major_cn: "+line.split('\t')[4]+" !ARTEFACT!-----"+str(line.split('\t')[0:5]))
 
 	return range_pos_all
 
@@ -559,8 +560,8 @@ def prep_config_file(name, patient_name, patient_dir):
 	source = glob.glob(patient_dir+'*')
 	for files in source:
 		if 'PYCLONE' in files:
-			sample_name = (('_'.join(files.split('_')[4:8])).split('.')[0])
 			
+			sample_name = (('_'.join(files.split('_')[4:8])).split('.')[0])
 			#w.write('\t# Unique sample ID.\n')
 			w.write('  %s: \n'% sample_name)
 
@@ -587,30 +588,47 @@ def prep_bash(name):
 		Output: '/home/shared_data_core/COLON/subclonality/patient_name/pyclone_bash_patient_name.sh'
 
 	"""
+	source = glob.glob('/home/shared_data_core/COLON/subclonality/%s/*'% name)
+	for files in source:
+		if 'PYCLONE' in files:
+			#print files
+			# check if input file for patient exist
+			if not os.path.exists(files):
+				logging.info("Input_files do not exist!!")
 	
-	# check if bash file for patient exist
-	if os.path.exists('/home/shared_data_core/COLON/subclonality/%s/pyclone_bash_%s.sh'% (name,name)):
-		logging.info("Bash_file: pyclone_bash_%s.sh already exist!"% name)
-	
-	# if bash not exists, make bash with all necessary lines
-	else:				
-		w = open('/home/shared_data_core/COLON/subclonality/%s/pyclone_bash_%s.sh'% (name,name), 'wb')
-		w.write('#!/bin/bash\n')
-		w.write('#WVeulemans\n\n')
-		w.write('WORKING_DIR= "/home/shared_data_core/COLON/subclonality/%s/"\n\n'% name)
-		w.write('echo -e "#!/bin/bash\n#PBS -X\t\t\t\t\t\tThe -x option allows the script to be executed in the interactive job and then the job completes\n#PBS -N PyClone$tumor_sample_name\t\tDeclares a name for the job\n#PBS -l nodes=1:ppn=8,mem=4g,walltime=01:00:00\tDefines the resources that are required by the job and establishes a limit to the amount of resource that can be consumed\n#PBS -m ea\t\t\t\t\tmail_options\n#PBS -M ward.veulemans@student.howest.be\tDeclares the list of users to whom mail is sent\n#PBS -q scattergather\t\t\t\tDefines the destination of the job\n#PBS -A onco\t\t\t\t\tDefines the account string associated with the job\n"\n\n')
+			# if input file exists, make/refresh bash with all necessary lines
+			else:				
+				w = open('/home/shared_data_core/COLON/subclonality/%s/pyclone_bash_%s.sh'% (name,name), 'wb')
+				w.write('#!/bin/bash\n')
+				w.write('#WVeulemans\n\n')
+				w.write('WORKING_DIR= "/home/shared_data_core/COLON/subclonality/%s/"\n\n'% name)
+				w.write('echo -e "#!/bin/bash\n#PBS -X\t\t\t\t\t\tThe -x option allows the script to be executed in the interactive job and then the job completes\n#PBS -N PyClone$tumor_sample_name\t\tDeclares a name for the job\n#PBS -l nodes=1:ppn=2,mem=4g,walltime=01:00:00\tDefines the resources that are required by the job and establishes a limit to the amount of resource that can be consumed\n#PBS -m ea\t\t\t\t\tmail_options\n#PBS -M ward.veulemans@student.howest.be\tDeclares the list of users to whom mail is sent\n#PBS -q scattergather\t\t\t\tDefines the destination of the job\n#PBS -A onco\t\t\t\t\tDefines the account string associated with the job\n"\n\n')
 
 
-		w.write('echo "Building yaml files"\n')
-		source = glob.glob('/home/shared_data_core/COLON/subclonality/%s/*'% name)
-		for files in source:
-			inputs = files.split('/')[6]
-			if 'PYCLONE_input' in inputs:
-				w.write('echo `PyClone build_mutations_file --in_file '+inputs+' --out_file '+inputs+'.yaml`\n')
+				w.write('echo "Building yaml files"\n')
+				source = glob.glob('/home/shared_data_core/COLON/subclonality/%s/*'% name)
+				for files in source:
+					inputs = files.split('/')[6]
+					if 'PYCLONE_input' in inputs:
+						if not '.tsv.yaml' in inputs:			
+							w.write('echo `PyClone build_mutations_file --in_file '+inputs+' --out_file '+inputs+'.yaml`\n')
 
-		w.write('echo "Running pipeline analysis"\n')
-		w.write('\necho `PyClone run_analysis --config_file config_file_%s.yaml`\n'% name)
-		w.close()
+				w.write('\necho "Running pipeline analysis for %s"\n'% name)
+				w.write('echo `PyClone run_analysis --config_file config_file_%s.yaml`\n'% name)
+
+				w.write('\necho "Building density_plot_%s"\n'% name)
+				w.write('echo `PyClone plot_loci --config_file config_file_%s.yaml --plot_file density_plot_%s --plot_type density`\n'% (name,name))
+
+				w.write('\necho "Building similarity_matrix_%s"\n'% name)
+				w.write('echo `PyClone plot_loci --config_file config_file_%s.yaml --plot_file sim_matrix_%s --plot_type similarity_matrix`\n'% (name,name))
+
+				w.write('\necho "Building parallel_coordinates_%s"\n'% name)
+				w.write('echo `PyClone plot_clusters --config_file config_file_%s.yaml --plot_file parallel_coordinates_%s --plot_type parallel_coordinates`\n'% (name,name))
+
+				w.write('\necho "Building table_%s"\n'% name)
+				w.write('echo `PyClone build_table --config_file config_file_%s.yaml --out_file table_%s.tsv --table_type loci`\n'% (name,name))
+
+				w.close()
 	
 	global bash_file
 	bash_file = '/home/shared_data_core/COLON/subclonality/%s/pyclone_bash_%s.sh'% (name,name)
@@ -627,14 +645,79 @@ def run_bash(bash_file, name):
 			- outfile '...'
 
 	"""
+	
+	if os.path.exists('/home/shared_data_core/COLON/subclonality/%s/pyclone_bash_%s.sh'% (name,name)):
+		os.chdir('/home/shared_data_core/COLON/subclonality/%s/'% name)
+		# change rights from bash file
+		os.chmod('pyclone_bash_%s.sh'% name, 0755)
+		subprocess.call('./pyclone_bash_%s.sh'% name)
+		os.stat('pyclone_bash_%s.sh'% name)
+		logging.info("Patient: "+name+" is analyzed!")
+
+
+def prep_supraHex(name):
+	"""
+		Input: table_file from PyClone
+		----------
+	    	Function: make inputfile for supraHex
+		----------
+		Output: inputfile for supraHex
+
+	"""
 
 	os.chdir('/home/shared_data_core/COLON/subclonality/%s/'% name)
-	# change rights from bash file
-	os.chmod('pyclone_bash_%s.sh'% name, 0755)
-	subprocess.call('./pyclone_bash_%s.sh'% name)
-	os.stat('pyclone_bash_%s.sh'% name)
 
+	if os.path.exists('table_%s.tsv'% name):
+		r = open('table_%s.tsv'% name, 'rb')
+		next(r)
+		w = open('supraHex_input_%s.tsv'% name, 'wb')
+		
+		samples = []
+		for lines in r:
+			samples.append(lines.split('\t')[1])
+		sample = set(samples)
+		print sample
 
+		w.write('mutation_id'+'\t'+samples[0]+'\t'+samples[0]+'_std'+'\t'+samples[1]+'\t'+samples[1]+'_std'+'\t'+'cluster_id'+'\n')
+		r.close()
+
+		r = open('table_%s.tsv'% name, 'rb')
+		next(r)
+	
+		supraHex = OD([
+		('mutation_id', str()),
+		('cell_prevalence', float()),
+		('cell_prevalence_std', float()),
+		])
+
+		count = 0
+		for lines in r:
+			if not lines.split('\t')[0] == supraHex['mutation_id']:
+				supraHex['mutation_id'] = lines.split('\t')[0]
+				#print lines.split('\t')[3]
+				supraHex['cell_prevalence'] = lines.split('\t')[3]
+				supraHex['cell_prevalence_std'] = lines.split('\t')[4]
+				supraHex['cluster_id'] = lines.split('\t')[2]
+				#print supraHex
+				count += 1
+				#print count
+			else:
+				dict_cp = ([('cell_prevalence1', lines.split('\t')[3])])
+				supraHex.update(dict_cp)
+
+				dict_cp_std = ([('cell_prevalence_std1', lines.split('\t')[4])])
+				supraHex.update(dict_cp_std)
+				
+				dict_cl_id = ([('cluster_id', lines.split('\t')[2])])
+				supraHex.update(dict_cl_id)
+				
+				w.write(supraHex['mutation_id']+'\t'+supraHex['cell_prevalence']+'\t'+supraHex['cell_prevalence_std']+'\t'+supraHex['cell_prevalence1']+'\t'+supraHex['cell_prevalence_std1']+'\t'+supraHex['cluster_id']+'\n')
+#			for ele in supraHex:				
+#				w.write(str(variant_info[ele]))
+				
+		w.close		
+		
+	
 
 
 def main():
@@ -676,8 +759,9 @@ def main():
 			input_tsv(patient_dir, name, patient_name, vcf_files)
 		prep_config_file(name, patient_name, patient_dir)
 		prep_bash(name)
-		run_bash(bash_file, name)
-		print "Patient: "+name+" is analyzed!"
+		#run_bash(bash_file, name)
+		prep_supraHex(name)
+		
 	 	
 	
    	logging.info('Finished')
