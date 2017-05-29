@@ -1,10 +1,16 @@
+#! /opt/software/R/3.3.2/ Rscript
+
+args = commandArgs(trailingOnly=TRUE)
+
 #################### (I) Load the package and import data ####################
+source("http://bioconductor.org/biocLite.R")
+biocLite("supraHex")
+biocLite("hexbin")
+biocLite("methods")
 library(supraHex)
 
 # import datafile
-getwd()
-setwd("/home/Ward/Ward_stage/b/")
-input <- read.table(file="supraHex_input_b.tsv", row.names= 1, header=T, sep="\t", check.names=F)
+input <- read.table(file=args[1], row.names= 1, header=T, sep="\t", check.names=F)
 
 # extract the mean cellular prevalence of the n mutations X n samples
 odd_indexes <- seq(1,ncol(input)-1,2) # only odd indexes (excluding the last column)
@@ -20,7 +26,7 @@ head(data)
 
 #################### (II) Train the supra-hexagonal map with input data only ####################
 sMap <- sPipeline(data)
-visHexMulComp(sMap, title.rotate=10, zlim=c(0,1), colormap="darkgreen-lightgreen-lightpink-darkred")
+visHexMulComp(sMap, title.rotate=10, zlim=c(0,1), colormap="jet")
 dev.copy(png,'SupraHex_visHexMulComp.png')
 dev.off()
 
@@ -29,7 +35,6 @@ sWriteData(sMap, data, filename="PyClone_cellular_prevalence.supraHex.txt")
 
 #################### (III) Visualise the map ####################
 ###including built-in indexes, data hits/distributions, distance between map nodes, and codebook matrix
-
 visHexMapping(sMap, mappingType="indexes")
 dev.copy(png,'SupraHex_visHexMapping_index.png')
 dev.off()
@@ -81,7 +86,7 @@ sWriteData(sMap, data, sBase, filename="PyClone_cellular_prevalence.supraHex_bas
 #and 3rd column for the cluster bases (i.e. mutation meta-clusters). You can also force the input data to be output.
 
 sWriteData(sMap, data, sBase, filename="PyClone_cellular_prevalence.supraHex_base_2.txt", keep.data=T)
-output <- visDmatHeatmap(sMap, data, sBase, base.separated.arg=list(col="black"), base.legend.location="bottomleft", colormap="darkgreen-lightgreen-lightpink-darkred", KeyValueName="Cellular prevalence", labRow=NA, keep.data=T, srtCol=20)
+output <- visDmatHeatmap(sMap, data, sBase, base.separated.arg=list(col="black"), base.legend.location="bottomleft", colormap="jet", KeyValueName="Cellular prevalence", labRow=NA, keep.data=T, srtCol=20)
 # As you have seen, heatmap is used to visualise cellular prevalence patterns seen within each meta-cluster/base. 
 #Row side bar indicates the mutation meta-clusters/bases. 
 #The returned variable "output" (NOT a txt file) has 1st column for your input data ID (an integer; otherwise the row names of input data matrix), 
@@ -94,7 +99,7 @@ output <- visDmatHeatmap(sMap, data, sBase, base.separated.arg=list(col="black")
 ### to delineate relationships between taxonomy
 
 sReorder <- sCompReorder(sMap, metric="euclidean")
-visCompReorder(sMap, sReorder, title.rotate=10, zlim=c(0,1), colormap="darkgreen-lightgreen-lightpink-darkred")
+visCompReorder(sMap, sReorder, title.rotate=10, zlim=c(0,1), colormap="jet")
 dev.copy(png,'SupraHex_visCompReorder.png')
 dev.off()
 # As you have seen, reordered components of trained map is displayed. 

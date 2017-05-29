@@ -190,7 +190,7 @@ def copyfile_VCF_TXT(name):
 
 	if cnv_file == 0:
 		print "No CNV file."
-		logging.error("CNV file missing for :"+files.split('/')[7]+"!!!")
+		logging.error("Patient %s: CNV file missing for: "% name +files.split('/')[7]+"!!!")
 		cnv_file = 0
 
 	return cnv_file
@@ -385,8 +385,8 @@ def read_cnv(cnv_file, name, variant_info):
 					else:
 						range_pos['cnv_state'] = str(line.split('\t')[4])
 						range_pos_all.append(range_pos)
-				#else:
-					#logging.warning("major_cn: "+line.split('\t')[4]+" !ARTEFACT!-----"+str(line.split('\t')[0:5]))
+				else:
+					logging.warning("Patient %s: major_cn: "% name+line.split('\t')[4]+" !ARTEFACT!-----"+str(line.split('\t')[0:5]))
 
 	return range_pos_all
 
@@ -450,7 +450,7 @@ def empty_files(name, files):
 
 		if len(r.read()) == 0:
 			pyclone_file = 0
-			logging.info("File: "+files.split('/', 6)[6]+" empty!")
+			logging.info("Patient %s: file: "% name +files.split('/', 6)[6]+" empty!")
 	
 	return pyclone_file
 		
@@ -617,16 +617,16 @@ def prep_bash(name):
 				w.write('echo `PyClone run_analysis --config_file config_file_%s.yaml`\n'% name)
 
 				w.write('\necho "Building density_plot_%s"\n'% name)
-				w.write('echo `PyClone plot_loci --config_file config_file_%s.yaml --plot_file density_plot_%s --plot_type density`\n'% (name,name))
+				w.write('echo `PyClone plot_loci --config_file config_file_%s.yaml --plot_file PyClone_density_plot_%s --plot_type density`\n'% (name,name))
 
 				w.write('\necho "Building similarity_matrix_%s"\n'% name)
-				w.write('echo `PyClone plot_loci --config_file config_file_%s.yaml --plot_file sim_matrix_%s --plot_type similarity_matrix`\n'% (name,name))
+				w.write('echo `PyClone plot_loci --config_file config_file_%s.yaml --plot_file PyClone_sim_matrix_%s --plot_type similarity_matrix`\n'% (name,name))
 
 				w.write('\necho "Building parallel_coordinates_%s"\n'% name)
-				w.write('echo `PyClone plot_clusters --config_file config_file_%s.yaml --plot_file parallel_coordinates_%s --plot_type parallel_coordinates`\n'% (name,name))
+				w.write('echo `PyClone plot_clusters --config_file config_file_%s.yaml --plot_file PyClone_parallel_coordinates_%s --plot_type parallel_coordinates`\n'% (name,name))
 
 				w.write('\necho "Building table_%s"\n'% name)
-				w.write('echo `PyClone build_table --config_file config_file_%s.yaml --out_file table_%s.tsv --table_type loci`\n'% (name,name))
+				w.write('echo `PyClone build_table --config_file config_file_%s.yaml --out_file PyClone_table_%s.tsv --table_type loci`\n'% (name,name))
 
 				w.close()
 	
@@ -667,8 +667,8 @@ def prep_supraHex(name):
 
 	os.chdir('/home/shared_data_core/COLON/subclonality/%s/'% name)
 
-	if os.path.exists('table_%s.tsv'% name):
-		r = open('table_%s.tsv'% name, 'rb')
+	if os.path.exists('PyClone_table_%s.tsv'% name):
+		r = open('PyClone_table_%s.tsv'% name, 'rb')
 		next(r)
 		w = open('supraHex_input_%s.tsv'% name, 'wb')
 		
@@ -681,7 +681,7 @@ def prep_supraHex(name):
 		w.write('mutation_id'+'\t'+samples[0]+'\t'+samples[0]+'_std'+'\t'+samples[1]+'\t'+samples[1]+'_std'+'\t'+'cluster_id'+'\n')
 		r.close()
 
-		r = open('table_%s.tsv'% name, 'rb')
+		r = open('PyClone_table_%s.tsv'% name, 'rb')
 		next(r)
 	
 		supraHex = OD([
@@ -717,7 +717,9 @@ def prep_supraHex(name):
 				
 		w.close		
 		
-	
+def exe_supraHex(name, R_script):
+	os.chdir('/home/shared_data_core/COLON/subclonality/%s/'% name)
+	os.system('/usr/bin/Rscript '+R_script+' supraHex_input_%s.tsv'% name)
 
 
 def main():
@@ -734,6 +736,7 @@ def main():
 	text_file = '/home/shared_data_core/COLON/subclonality/paired_samples_nele_purity_all_runs_short.txt'
 	short2 = '/home/shared_data_core/COLON/subclonality/Klinischegegegeven_patienten_ITH_20151110.csv'
 	info_file = '/home/shared_data_core/COLON/subclonality/info_file.txt'
+	R_script = '/home/shared_data_core/COLON/subclonality/supraHex_script.R'
 		
 	to_lower(text_file)
 	to_lower(short2)
@@ -761,6 +764,7 @@ def main():
 		prep_bash(name)
 		#run_bash(bash_file, name)
 		prep_supraHex(name)
+		exe_supraHex(name, R_script)
 		
 	 	
 	
