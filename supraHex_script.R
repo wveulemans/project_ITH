@@ -1,13 +1,21 @@
-#! /opt/software/R/3.3.2/ Rscript
+#! /opt/software/R/3.3.2/bin/R
 
 args = commandArgs(trailingOnly=TRUE)
 
 #################### (I) Load the package and import data ####################
-source("http://bioconductor.org/biocLite.R")
-biocLite("supraHex")
-biocLite("hexbin")
-biocLite("methods")
+
+if("supraHex" %in% rownames(installed.packages()) == FALSE) {install.packages("supraHex", "hexbin", "methods")}
+
+#list.of.packages <- c("supraHex", "hexbin", "methods")
+#new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+#if(length(new.packages)) install.packages(new.packages){
+
+#source("http://bioconductor.org/biocLite.R")
+#biocLite("supraHex")
+#biocLite("hexbin")
+#biocLite("methods")
 library(supraHex)
+
 
 # import datafile
 input <- read.table(file=args[1], row.names= 1, header=T, sep="\t", check.names=F)
@@ -26,42 +34,42 @@ head(data)
 
 #################### (II) Train the supra-hexagonal map with input data only ####################
 sMap <- sPipeline(data)
-visHexMulComp(sMap, title.rotate=10, zlim=c(0,1), colormap="jet")
-dev.copy(png,'SupraHex_visHexMulComp.png')
+
+visHexMulComp(sMap, title.rotate=10, zlim=c(0,1), colormap="jet")#colormap =  “rainbow”, “jet”, “bwr”, “gbr”, “wyr”, “br”, “yr”
+system('mv Rplots.pdf SupraHex_visHexMulComp.pdf')
 dev.off()
 
 sWriteData(sMap, data, filename="PyClone_cellular_prevalence.supraHex.txt")
 
-
 #################### (III) Visualise the map ####################
 ###including built-in indexes, data hits/distributions, distance between map nodes, and codebook matrix
 visHexMapping(sMap, mappingType="indexes")
-dev.copy(png,'SupraHex_visHexMapping_index.png')
+system('mv Rplots.pdf SupraHex_visHexMapping_index.pdf')
 dev.off()
 # As you have seen, the smaller hexagons in the supra-hexagonal map are indexed as follows: 
 #start from the center, and then expand circularly outwards, and for each circle increase in an anti-clock order.
 
 visHexMapping(sMap, mappingType="hits")
-dev.copy(png,'SupraHex_visHexMapping_hits.png')
+system('mv Rplots.pdf SupraHex_visHexMapping_hits.pdf')
 dev.off()
 # As you have seen, the number represents how many input data vectors (mutations) are hitting each hexagon, 
 #the size of which is proportional to the number of hits.
 
 visHexMapping(sMap, mappingType="dist")
-dev.copy(png,'SupraHex_visHexMapping_dist.png')
+system('mv Rplots.pdf SupraHex_visHexMapping_dist.pdf')
 dev.off()
 # As you have seen, map distance tells how far each hexagon is away from its neighbors, 
 #and the size of each hexagon is proportional to this distance.
 
 visHexPattern(sMap, plotType="lines")
-dev.copy(png,'SupraHex_visHexPattern_lines.png')
+system('mv Rplots.pdf SupraHex_visHexMapping_lines.pdf')
 dev.off()
 # As you have seen, line plot displays the patterns associated with the codebook matrix. 
 # If multple colors are given, the points are also plotted. 
 # When the pattern involves both positive and negative values, zero horizental line is also shown.
 
 visHexPattern(sMap, plotType="bars")
-dev.copy(png,'SupraHex_visHexPattern_bars.png')
+system('mv Rplots.pdf SupraHex_visHexMapping_bars.pdf')
 dev.off()
 # As you have seen, bar plot displays the patterns associated with the codebook matrix. 
 #When the pattern involves both positive and negative values, the zero horizental line is in the middle of the hexagon; 
@@ -74,8 +82,9 @@ dev.off()
 sBase <- sDmatCluster(sMap)
 myColor <- c("transparent", "black")
 border.color <- myColor[sBase$bases%%2 + 1] ## the hexagon frame according to mete-clusters
-visDmatCluster(sMap,sBase, gp=grid::gpar(cex=1.5, font=2, col="blue"), colormap="PapayaWhip-pink-Tomato", area.size=0.95, border.color=border.color)
-dev.copy(png,'SupraHex_visDmatCluster.png')
+visDmatCluster(sMap,sBase, gp=grid::gpar(cex=1.5, font=2, col="blue"), colormap="jet", area.size=0.95, border.color=border.color) #colormap =  “rainbow”, “jet”, “bwr”, “gbr”, “wyr”, “br”, “yr”
+
+system('mv Rplots.pdf SupraHex_visDmatCluster.pdf')
 dev.off()
 
 sWriteData(sMap, data, sBase, filename="PyClone_cellular_prevalence.supraHex_base.txt")
@@ -86,7 +95,10 @@ sWriteData(sMap, data, sBase, filename="PyClone_cellular_prevalence.supraHex_bas
 #and 3rd column for the cluster bases (i.e. mutation meta-clusters). You can also force the input data to be output.
 
 sWriteData(sMap, data, sBase, filename="PyClone_cellular_prevalence.supraHex_base_2.txt", keep.data=T)
-output <- visDmatHeatmap(sMap, data, sBase, base.separated.arg=list(col="black"), base.legend.location="bottomleft", colormap="jet", KeyValueName="Cellular prevalence", labRow=NA, keep.data=T, srtCol=20)
+output <- visDmatHeatmap(sMap, data, sBase, base.separated.arg=list(col="black"), base.legend.location="bottomleft", colormap="jet", KeyValueName="Cellular prevalence", labRow=NA, keep.data=T, srtCol=20)#colormap =  “rainbow”, “jet”, “bwr”, “gbr”, “wyr”, “br”, “yr”
+
+system('mv Rplots.pdf SupraHex_visDmatHeatmap.pdf')
+dev.off()
 # As you have seen, heatmap is used to visualise cellular prevalence patterns seen within each meta-cluster/base. 
 #Row side bar indicates the mutation meta-clusters/bases. 
 #The returned variable "output" (NOT a txt file) has 1st column for your input data ID (an integer; otherwise the row names of input data matrix), 
@@ -99,8 +111,9 @@ output <- visDmatHeatmap(sMap, data, sBase, base.separated.arg=list(col="black")
 ### to delineate relationships between taxonomy
 
 sReorder <- sCompReorder(sMap, metric="euclidean")
-visCompReorder(sMap, sReorder, title.rotate=10, zlim=c(0,1), colormap="jet")
-dev.copy(png,'SupraHex_visCompReorder.png')
+visCompReorder(sMap, sReorder, title.rotate=10, zlim=c(0,1), colormap="jet") #colormap =  “rainbow”, “jet”, “bwr”, “gbr”, “wyr”, “br”, “yr”
+
+system('mv Rplots.pdf SupraHex_visCompReorder.pdf')
 dev.off()
 # As you have seen, reordered components of trained map is displayed. 
 #Each component illustrates a sample-specific map and is placed within a two-dimensional rectangular lattice. 

@@ -216,6 +216,7 @@ def copyfile_BAM(name):
 		if BAM.endswith('.bam'):
 			if not os.path.exists(os.path.join(destination,BAM.split('/')[5])):
 				shutil.copy2(os.path.abspath(BAM),destination)
+				#os.symlink(os.path.abspath(BAM), destination)
 #			else:
 #				logging.debug("File: "+BAM.split('/')[5]+" already exist!")
 
@@ -225,6 +226,7 @@ def copyfile_BAM(name):
 		if BAI.endswith('.bai'):
 			if not os.path.exists(os.path.join(destination,BAI.split('/')[5])):
 				shutil.copy2(os.path.abspath(BAI),destination)
+				#os.symlink(os.path.abspath(BAI), destination)
 #			else:
 #				logging.debug("File: "+BAI.split('/')[5]+" already exist!")
 	print "All BAI's copied for %s!"% name
@@ -719,7 +721,63 @@ def prep_supraHex(name):
 		
 def exe_supraHex(name, R_script):
 	os.chdir('/home/shared_data_core/COLON/subclonality/%s/'% name)
-	os.system('/usr/bin/Rscript '+R_script+' supraHex_input_%s.tsv'% name)
+	os.system('/opt/software/R/3.3.2/bin/Rscript '+R_script+' supraHex_input_%s.tsv'% name)
+
+
+
+def rights(patient_dir):
+	"""
+		Input: All files in the patient_directory
+		----------
+	    	Function: give acces to files (chmod 755)
+		----------
+		Output: All files with rights you need
+
+	"""
+	for root, dirs, files in os.walk(patient_dir):
+			for d in dirs:
+			    os.chmod(os.path.join(root, d), 0755)
+			for f in files:
+			    os.chmod(os.path.join(root, f), 0755)
+
+
+
+def parameters(name):
+	"""
+		Input: SupraHex_input_patient_name.tsv
+		----------
+	    	Function: Calculate:	- overall cellular prevalence
+					- overall cellular prevalence standard deviation
+					- cluster cellular prevalence
+					- cluster cellular prevalence standard deviation
+		----------
+		Output: file with calculations
+
+	"""	
+	if os.path.exists("/home/shared_data_core/COLON/subclonality/%s/supraHex_input_%s.tsv"% (name, name)):
+		r = open("/home/shared_data_core/COLON/subclonality/%s/supraHex_input_%s.tsv"% (name, name), "rb")
+		w = open("/home/shared_data_core/COLON/subclonality/%s/parameters_%s.tsv"% (name, name), "wb")
+		first_line = r.readline()
+		print first_line
+			
+def convert_pdf_images(name):
+	"""
+		Input: PDF images from SupraHex
+		----------
+	    	Function: convert PDF images to PNG for patient_report
+		----------
+		Output: PNG files acquired and PDF deleted
+
+	"""
+	source = glob.glob('/home/shared_data_core/COLON/subclonality/%s/*'% name)
+	for files in source:
+		if 'SupraHex' in files and '.pdf' in files:
+			#print (files.split('/')[6]).split('.')[0]
+			m = "pdftoppm -png %s /home/shared_data_core/COLON/subclonality/%s/%s"% (files.split('/')[6], name, files.split('/')[6].split('.')[0])
+			print m
+			os.system(m)
+			os.system("rm %s"% files.split('/')[6])
+	
 
 
 def main():
@@ -748,6 +806,7 @@ def main():
 		makedir(name)
 		copyfile_VCF_TXT(name)
 		copyfile_BAM(name)
+		global patient_dir
 		patient_dir = '/home/shared_data_core/COLON/subclonality/%s/'% name
 		source = glob.glob(patient_dir+'*.vcf')
 		for files in source:
@@ -764,10 +823,12 @@ def main():
 		prep_bash(name)
 		#run_bash(bash_file, name)
 		prep_supraHex(name)
-		exe_supraHex(name, R_script)
+		#exe_supraHex(name, R_script)
+		parameters(name)
 		
-	 	
-	
+		rights(patient_dir)
+		#convert_pdf_images(name)
+		
    	logging.info('Finished')
 	
 
