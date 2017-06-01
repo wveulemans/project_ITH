@@ -4,18 +4,13 @@ args = commandArgs(trailingOnly=TRUE)
 
 #################### (I) Load the package and import data ####################
 
-if("supraHex" %in% rownames(installed.packages()) == FALSE) {install.packages("supraHex", "hexbin", "methods")}
+if("supraHex" %in% rownames(installed.packages()) == FALSE) {
+	source("http://bioconductor.org/biocLite.R")
+	biocLite("supraHex")
+	biocLite("hexbin")
+	biocLite("methods")install.packages("supraHex", "hexbin", "methods")}
 
-#list.of.packages <- c("supraHex", "hexbin", "methods")
-#new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
-#if(length(new.packages)) install.packages(new.packages){
-
-#source("http://bioconductor.org/biocLite.R")
-#biocLite("supraHex")
-#biocLite("hexbin")
-#biocLite("methods")
 library(supraHex)
-
 
 # import datafile
 input <- read.table(file=args[1], row.names= 1, header=T, sep="\t", check.names=F)

@@ -678,7 +678,7 @@ def prep_supraHex(name):
 		for lines in r:
 			samples.append(lines.split('\t')[1])
 		sample = set(samples)
-		print sample
+		#print sample
 
 		w.write('mutation_id'+'\t'+samples[0]+'\t'+samples[0]+'_std'+'\t'+samples[1]+'\t'+samples[1]+'_std'+'\t'+'cluster_id'+'\n')
 		r.close()
@@ -753,13 +753,136 @@ def parameters(name):
 		----------
 		Output: file with calculations
 
-	"""	
+	"""
+
 	if os.path.exists("/home/shared_data_core/COLON/subclonality/%s/supraHex_input_%s.tsv"% (name, name)):
 		r = open("/home/shared_data_core/COLON/subclonality/%s/supraHex_input_%s.tsv"% (name, name), "rb")
 		w = open("/home/shared_data_core/COLON/subclonality/%s/parameters_%s.tsv"% (name, name), "wb")
+
+		w.write('#########################Amount of samples/biopts#########################\n')
 		first_line = r.readline()
-		print first_line
+		amount = 0
+		for i in first_line.split('\t'):
+			amount += 1
+
+		w.write('Amount of biopsies\t'+str((amount - 2)/2)+'\n')
+		all_cols = range(amount)
+		nec_cols = all_cols[1:-1]
+
+		# make r more iterable than 1 time
+		data = list(r)
+		
+		w.write('\n#########################Overall cellular prevalence average#########################\n')
+		w.write('Overall cellular prev\t')
+		#print nec_cols[::2]
+		cell_prev = []
 			
+		for i in nec_cols[::2]:
+			# list of all numbers
+			for line in data:
+				cell_prev.append(line.split('\t')[i])
+		cell_prev = map(float, cell_prev)
+		#print sum(cell_prev)
+		# count amount of numbers
+		count = 0
+		for i in cell_prev:
+			count += 1
+		#print count
+		# calculate average
+		#print (sum(cell_prev)/count)
+		w.write(str((sum(cell_prev)/count))+'\n')
+
+		w.write('\n#########################Overall cellular prevalence std average#########################\n')
+		w.write('Overall cellular prev std\t')
+		#print nec_cols[1::2]
+		cell_prev = []
+			
+		for i in nec_cols[1::2]:
+			# list of all numbers
+			for line in data:
+				cell_prev.append(line.split('\t')[i])
+		cell_prev = map(float, cell_prev)
+		#print sum(cell_prev)
+		# count amount of numbers
+		count = 0
+		for i in cell_prev:
+			count += 1
+		#print count
+		# calculate average
+		#print (sum(cell_prev)/count)
+		w.write(str((sum(cell_prev)/count))+'\n')
+
+		w.write('\n#########################Average calculated per sample from patient#########################\n')
+		for i in all_cols[1:-1]:
+			w.write(first_line.split('\t')[i]+'\t')
+			# list of all numbers
+			cell_prev = []
+			for line in data:
+				cell_prev.append(line.split('\t')[i])
+
+			# change list from str to int
+			cell_prev = map(float, cell_prev)
+			#print sum(cell_prev)
+
+			# count amount of numbers
+			count = 0
+			for i in cell_prev:
+				count += 1
+			#print count
+			# calculate average
+			#print (sum(cell_prev)/count)
+			w.write(str((sum(cell_prev)/count))+'\n')
+		
+		w.write('\n#########################Average per clusterID#########################\n')
+		# make dictionary to know which column == cluster_id
+		colnames = []
+		for i in first_line.split('\t'):
+			colnames.append(i)
+		d = {}
+		for i, j in zip(all_cols, colnames):
+			d[i] = j
+
+		print d
+		for key, value in d.iteritems():
+			if value == 'cluster_id\n':
+	    			#print key
+				cor_key = key
+
+		# cor_key is the number of the column we need for the cluster ID
+		clu_id = []
+		for line in data:
+			clu_id.append((line.split('\t')[cor_key]).split('\n')[0])
+		cor_clu_id = set(clu_id)
+		print cor_clu_id
+		for ele in cor_clu_id:
+			for o in all_cols[1:-1]:
+				w.write(str(ele)+'\t'+str(first_line.split('\t')[o])+'\t')
+				cell_prev = []
+				print first_line.split('\t')[o]
+				
+				for lines in data:
+					if ele == lines.split('\t')[cor_key].split('\n')[0]:
+						cell_prev.append(lines.split('\t')[o])
+						
+				# change list from str to int
+				cell_prev = map(float, cell_prev)
+				#print sum(cell_prev)
+
+				# count amount of numbers
+				count = 0
+				for i in cell_prev:
+					count += 1
+				#print count
+				# calculate average
+				#print (sum(cell_prev)/count)
+				w.write(str((sum(cell_prev)/count))+'\n')
+			w.write('\n')
+
+		w.write('\n#########################Overall Variant Allele Frequency#########################\n')
+		
+		w.write('\n#########################Average Variant Allele Frequency per clusterID#########################\n')
+		
+	
 def convert_pdf_images(name):
 	"""
 		Input: PDF images from SupraHex
@@ -805,7 +928,7 @@ def main():
 	for name in names:
 		makedir(name)
 		copyfile_VCF_TXT(name)
-		copyfile_BAM(name)
+		#copyfile_BAM(name)
 		global patient_dir
 		patient_dir = '/home/shared_data_core/COLON/subclonality/%s/'% name
 		source = glob.glob(patient_dir+'*.vcf')
