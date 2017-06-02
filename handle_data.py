@@ -754,134 +754,217 @@ def parameters(name):
 		Output: file with calculations
 
 	"""
-
+	
 	if os.path.exists("/home/shared_data_core/COLON/subclonality/%s/supraHex_input_%s.tsv"% (name, name)):
-		r = open("/home/shared_data_core/COLON/subclonality/%s/supraHex_input_%s.tsv"% (name, name), "rb")
 		w = open("/home/shared_data_core/COLON/subclonality/%s/parameters_%s.tsv"% (name, name), "wb")
-
-		w.write('#########################Amount of samples/biopts#########################\n')
-		first_line = r.readline()
-		amount = 0
-		for i in first_line.split('\t'):
-			amount += 1
-
-		w.write('Amount of biopsies\t'+str((amount - 2)/2)+'\n')
-		all_cols = range(amount)
-		nec_cols = all_cols[1:-1]
+		r = open('/home/shared_data_core/COLON/subclonality/%s/PyClone_table_%s.tsv'% (name, name), 'rb')
+		next(r)
 
 		# make r more iterable than 1 time
 		data = list(r)
-		
-		w.write('\n#########################Overall cellular prevalence average#########################\n')
-		w.write('Overall cellular prev\t')
-		#print nec_cols[::2]
-		cell_prev = []
-			
-		for i in nec_cols[::2]:
-			# list of all numbers
-			for line in data:
-				cell_prev.append(line.split('\t')[i])
-		cell_prev = map(float, cell_prev)
-		#print sum(cell_prev)
-		# count amount of numbers
-		count = 0
-		for i in cell_prev:
-			count += 1
-		#print count
-		# calculate average
-		#print (sum(cell_prev)/count)
-		w.write(str((sum(cell_prev)/count))+'\n')
 
-		w.write('\n#########################Overall cellular prevalence std average#########################\n')
-		w.write('Overall cellular prev std\t')
-		#print nec_cols[1::2]
-		cell_prev = []
-			
-		for i in nec_cols[1::2]:
-			# list of all numbers
-			for line in data:
-				cell_prev.append(line.split('\t')[i])
-		cell_prev = map(float, cell_prev)
-		#print sum(cell_prev)
-		# count amount of numbers
-		count = 0
-		for i in cell_prev:
-			count += 1
-		#print count
-		# calculate average
-		#print (sum(cell_prev)/count)
-		w.write(str((sum(cell_prev)/count))+'\n')
-
-		w.write('\n#########################Average calculated per sample from patient#########################\n')
-		for i in all_cols[1:-1]:
-			w.write(first_line.split('\t')[i]+'\t')
-			# list of all numbers
-			cell_prev = []
-			for line in data:
-				cell_prev.append(line.split('\t')[i])
-
-			# change list from str to int
-			cell_prev = map(float, cell_prev)
-			#print sum(cell_prev)
-
-			# count amount of numbers
-			count = 0
-			for i in cell_prev:
-				count += 1
-			#print count
-			# calculate average
-			#print (sum(cell_prev)/count)
-			w.write(str((sum(cell_prev)/count))+'\n')
-		
-		w.write('\n#########################Average per clusterID#########################\n')
-		# make dictionary to know which column == cluster_id
-		colnames = []
-		for i in first_line.split('\t'):
-			colnames.append(i)
-		d = {}
-		for i, j in zip(all_cols, colnames):
-			d[i] = j
-
-		print d
-		for key, value in d.iteritems():
-			if value == 'cluster_id\n':
-	    			#print key
-				cor_key = key
-
-		# cor_key is the number of the column we need for the cluster ID
+		prev_VAF = OD([
+			('clu_id', str()),			# unique id for every mutation
+			('sample_id', str()),			# number of reads covering the mutation which contain the reference (genome) allele
+			('cell_prev', str()),			# number of reads covering the mutation which contain the variant allele
+			('cell_prev_std', str()),		# copy number of the cells in the normal population.
+			('cell_prev_overall', str()),		# minor copy number of the cancer cells. Usually this value will be predicted from WGSS or array data
+			('cell_prev_std_overall', str()), 	# major copy number of the cancer cells. Usually this value will be predicted from WGSS or array data
+			('VAF', str()),				# patient_name
+			('VAF_overall', str()),			# 1 - (ref_counts/(ref_counts + var_counts))
+		])
+	
+		# Clusters
+		###################################################################
 		clu_id = []
 		for line in data:
-			clu_id.append((line.split('\t')[cor_key]).split('\n')[0])
-		cor_clu_id = set(clu_id)
-		print cor_clu_id
-		for ele in cor_clu_id:
-			for o in all_cols[1:-1]:
-				w.write(str(ele)+'\t'+str(first_line.split('\t')[o])+'\t')
+			clu_id.append(line.split('\t')[2])
+
+		cor_clu_id = []
+		for i in clu_id:
+			if i not in cor_clu_id:
+				cor_clu_id.append(i)
+
+		cor_clu_id.sort()
+		prev_VAF['clu_id'] = cor_clu_id
+		#print prev_VAF['clu_id']
+	
+		# Samples
+		###################################################################
+		sample_id = []
+		for line in data:
+			sample_id.append(line.split('\t')[1])
+
+		cor_sample_id = []
+		for i in sample_id:
+			if i not in cor_sample_id:
+				cor_sample_id.append(i)
+
+		cor_sample_id.sort()
+		prev_VAF['sample_id'] = cor_sample_id
+		#print prev_VAF['sample_id']
+
+		# Cell prevalence
+		###################################################################
+		r_cell_prev = []
+		for i in prev_VAF['clu_id']:
+			#print i
+			for o in prev_VAF['sample_id']:
+				#print o
 				cell_prev = []
-				print first_line.split('\t')[o]
-				
-				for lines in data:
-					if ele == lines.split('\t')[cor_key].split('\n')[0]:
-						cell_prev.append(lines.split('\t')[o])
-						
-				# change list from str to int
+				for line in data:
+					if i == line.split('\t')[2] and o == line.split('\t')[1]:
+						cell_prev.append(line.split('\t')[3])
+
 				cell_prev = map(float, cell_prev)
-				#print sum(cell_prev)
+				#print cell_prev
 
 				# count amount of numbers
 				count = 0
-				for i in cell_prev:
+				for p in cell_prev:
 					count += 1
 				#print count
+	
 				# calculate average
 				#print (sum(cell_prev)/count)
-				w.write(str((sum(cell_prev)/count))+'\n')
-			w.write('\n')
+				r_cell_prev.append(format((sum(cell_prev)/count), '.4f'))
 
-		w.write('\n#########################Overall Variant Allele Frequency#########################\n')
+		prev_VAF['cell_prev'] =  r_cell_prev
 		
-		w.write('\n#########################Average Variant Allele Frequency per clusterID#########################\n')
+
 		
+		
+		# Cell prevalence std
+		###################################################################
+		r_cell_prev_std = []
+		for i in prev_VAF['clu_id']:
+			#print i
+			for o in prev_VAF['sample_id']:
+				#print o
+				cell_prev_std = []
+				for line in data:
+					if i == line.split('\t')[2] and o == line.split('\t')[1]:
+						cell_prev_std.append(line.split('\t')[4])
+
+				cell_prev_std = map(float, cell_prev_std)
+				#print cell_prev
+
+				# count amount of numbers
+				count = 0
+				for p in cell_prev_std:
+					count += 1
+				#print count
+	
+				# calculate average
+				#print (sum(cell_prev_std)/count)
+				r_cell_prev_std.append(format((sum(cell_prev_std)/count), '.4f'))
+
+		prev_VAF['cell_prev_std'] = r_cell_prev_std
+
+		# Overall cell prevalence
+		###################################################################
+		cell_prev = []
+			
+		for line in data:
+			cell_prev.append(line.split('\t')[3])
+		cell_prev = map(float, cell_prev)
+		#print sum(cell_prev)
+
+		# count amount of numbers
+		count = 0
+		for i in cell_prev:
+			count += 1
+		#print count
+
+		# calculate average
+		#print (sum(cell_prev)/count)
+		prev_VAF['cell_prev_overall'] = format((sum(cell_prev)/count), '.4f')
+
+		# Overall cell prevalence std
+		###################################################################
+		cell_prev_std = []
+			
+		for line in data:
+			cell_prev_std.append(line.split('\t')[4])
+		cell_prev_std = map(float, cell_prev_std)
+		#print sum(cell_prev_std)
+
+		# count amount of numbers
+		count = 0
+		for i in cell_prev_std:
+			count += 1
+		#print count
+
+		# calculate average
+		#print (sum(cell_prev_std)/count)
+		prev_VAF['cell_prev_std_overall'] = format((sum(cell_prev_std)/count), '.4f')
+	
+		# Variant allele frequency
+		###################################################################
+		r_VAF = []
+		for i in prev_VAF['clu_id']:
+			#print i
+			for o in prev_VAF['sample_id']:
+				#print o
+				VAF = []
+				for line in data:
+					if i == line.split('\t')[2] and o == line.split('\t')[1]:
+						VAF.append(line.split('\t')[5])
+
+				VAF = map(float, VAF)
+				#print VAF
+
+				# count amount of numbers
+				count = 0
+				for p in VAF:
+					count += 1
+				#print count
+	
+				# calculate average
+				#print (sum(cell_prev_std)/count)
+				r_VAF.append(format((sum(VAF)/count), '.4f'))
+		
+		prev_VAF['VAF'] = r_VAF
+
+		# Overall variant allele frequency
+		###################################################################
+		VAF_overall = []
+			
+		for line in data:
+			VAF_overall.append(line.split('\t')[5])
+		VAF_overall = map(float, VAF_overall)
+		#print sum(VAF_overall)
+
+		# count amount of numbers
+		count = 0
+		for i in VAF_overall:
+			count += 1
+		#print count
+
+		# calculate average
+		#print (sum(VAF_overall)/count)
+		prev_VAF['VAF_overall'] = format((sum(VAF_overall)/count), '.4f')
+		
+		#print prev_VAF
+		
+		# write to file
+		###################################################################
+		for k,v in prev_VAF.iteritems():
+			w.write(k+'\t')
+		w.write('\n')
+
+		count = 0
+		for cluster in prev_VAF['clu_id']:
+			for sample in prev_VAF['sample_id']:
+				w.write(cluster+'\t'+sample+'\t'+str(prev_VAF['cell_prev'][count])+'\t'+str(prev_VAF['cell_prev_std'][count])+'\t'+str(prev_VAF['cell_prev_overall'])+'\t'+str(prev_VAF['cell_prev_std_overall'])+'\t'+str(prev_VAF['VAF'][count])+'\t'+str(prev_VAF['VAF_overall']) )
+				count += 1
+				w.write('\n')
+		logging.info('parameter file created for %s'% name)
+				
+			
+				
+			
+
 	
 def convert_pdf_images(name):
 	"""
