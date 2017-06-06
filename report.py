@@ -125,14 +125,14 @@ def patient_report(name, clin_info, log_file, names):
 <meta charset="utf-8">\n\
 <title>Patient report %s</title>\n'% name)
 	w.write('\t<style type="text/css" media="screen">\n\
-ul {\n\
+.ul_up {\n\
 	list-style-type: none;\n\
 	margin: 0;\n\
 	padding: 0;\n\
 	overflow: hidden;\n\
 	background-color: #333;\n\
 }\n\
-li {\n\
+.li_up {\n\
 	float: left;\n\
 }\n\
 li a, .dropbtn {\n\
@@ -167,12 +167,13 @@ li.dropdown {\n\
 .dropdown:hover .dropdown-content {\n\
 	display: block;\n\
 }\n\
-.a {\n\
+.dropdown_image {\n\
+    margin-right: 170px;\n\
     float: right;\n\
     position: relative;\n\
     display: inline-block;\n\
 }\n\
-.b {\n\
+.dropdown_content_image {\n\
     display: none;\n\
     position: absolute;\n\
     background-color: #f9f9f9;\n\
@@ -180,7 +181,7 @@ li.dropdown {\n\
     box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);\n\
     z-index: 1;\n\
 }\n\
-.c:hover .b {\n\
+.dropdown_image:hover .dropdown_content_image {\n\
     display: block;\n\
 }\n\
 .desc {\n\
@@ -191,13 +192,11 @@ h1 {\n\
 	margin: 10px 5px;\n\
 }\n\
 h2 {\n\
+	float:left\n\
 	margin: 10px 5px;\n\
 }\n\
 h3 {\n\
 	margin: 10px 5px;\n\
-}\n\
-.header {\n\
-	float: left;\n\
 }\n\
 div {\n\
 	margin: 0px  5px;\n\
@@ -208,8 +207,6 @@ div {\n\
 img {\n\
 	float: left;\n\
 	margin: 5px;\n\
-	height: 750px;\n\
-	width: 750px;\n\
 }\n\
 .img_txt {\n\
 	float: left;\n\
@@ -228,25 +225,56 @@ img {\n\
 	width:35%;\n\
 	font-size:13px;\n\
 }\n\
+table, th, td {\n\
+    border: 1px solid black;\n\
+    border-collapse: collapse;\n\
+}\n\
+th {\n\
+    background-color: #7c7c7c;\n\
+}\n\
+td {\n\
+    text-align: center;\n\
+}\n\
+tr:nth-child(even){background-color: #cccccc}\n\
+#myBtn {\n\
+  display: none;\n\
+  position: fixed;\n\
+  bottom: 20px;\n\
+  right: 30px;\n\
+  z-index: 99;\n\
+  border: none;\n\
+  outline: none;\n\
+  background-color: red;\n\
+  color: white;\n\
+  cursor: pointer;\n\
+  padding: 15px;\n\
+  border-radius: 10px;\n\
+}\n\
+\n\
+#myBtn:hover {\n\
+  background-color: #555;\n\
+  opacity: 0.5;\n\
+}\n\
 </style>\n\
 </head>\n\
 <body>\n\
-	<ul>\n\
-  		<li><a href="http://localhost:8000/index.php">Home</a></li>\n\
+<button onclick="topFunction()" id="myBtn" title="Go to top">Top</button>\n\
+	<div class="ul_up">\n\
+  		<li class="li_up"><a href="http://localhost:8000/index.php">Home</a></li>\n\
 		<li class="dropdown">\n\
-    			<a href="javascript:void(0)" class="dropbtn">Dropdown</a>\n\
+    			<a href="javascript:void(0)" class="dropbtn">Patients</a>\n\
     			<div class="dropdown-content">\n')
 	for i in names:
 		w.write('\t\t\t<a href="http://localhost:8000/patient_report_'+i+'.php">patient_'+i+'</a>\n')
       			
     	w.write('\t\t\t</div>\n\
   		</li>\n\
-	</ul>\n')
+	</div>\n')
 
-	w.write('<div class="a">\n\
-  <img src="person.jpg" alt="unknown_person" width="50" height="100">\n\
-  <div class="b">\n\
-    <img src="person.jpg" alt="unknown_person" width="200" height="300">\n\
+	w.write('<div class="dropdown_image">\n\
+  <img src="person.jpg" alt="unknown_person" width="75" height="100">\n\
+  <div class="dropdown_content_image">\n\
+    <img src="person.jpg" alt="unknown_person" width="225" height="300">\n\
     <div class="desc">Photo: patient '+name+'</div>\n\
   </div>\n\
 </div>\n')
@@ -309,20 +337,30 @@ img {\n\
 		<h2>PyClone visual output</h2>\n')
 
 	os.chdir('/home/shared_data_core/COLON/subclonality/%s/'% name)
-	source = glob.glob('*')
-	
-	for files in source:
-		if 'PyClone' in files and '.png' in files:
-			#print files
-			#print ' '.join((files.split('.')[0]).split('_')[0:3])
-			w.write('\t\t<div class="plot">\n\
-		<h3>'+' '.join((files.split('.')[0]).split('_')[0:3])+'</h3>\n\
-		<img src="/%s/'% name +files+'" alt="'+files.split('.')[0]+'">\n\
+
+	w.write('\t\t<div class="plot">\n\
+		<h3>PyClone density plot</h3>\n\
+		<img src="/'+name+'/PyClone_density_plot_'+name+'.png" alt="PyClone density plot '+name+'.png">\n\
 		<div class="img_txt">\n\
 		<pre>This is text</pre>\n\
 		</div>\n\
 		</div>\n\n')
 
+	source = glob.glob('*')
+	
+	for files in source:
+		if 'PyClone' in files and '.png' in files and not 'density_plot' in files:
+			#print files
+			#print ' '.join((files.split('.')[0]).split('_')[0:3])
+			w.write('\t\t<div class="plot">\n\
+		<h3>'+' '.join((files.split('.')[0]).split('_')[0:3])+'</h3>\n\
+		<img src="/%s/'% name +files+'" alt="'+files.split('.')[0]+'" height="750" width="750">\n\
+		<div class="img_txt">\n\
+		<pre>This is text</pre>\n\
+		</div>\n\
+		</div>\n\n')
+
+#####################################SupraHex visuals#####################################
 	w.write('\t\t<h2>SupraHex visual output</h2>\n\n')
 
 	for files in source:
@@ -330,15 +368,124 @@ img {\n\
 			#print files
 			#print ' '.join((files.split('.')[0]).split('_')[0:3])
 			w.write('\t\t<div class="plot">\n\
-		<h3>'+' '.join((files.split('.')[0]).split('_')[0:3])+'</h3>\n\
-		<img src="/%s/'% name +files+'" alt="'+files.split('.')[0]+'">\n\
-		<div class="img_txt">\n\
-		<pre>This is text</pre>\n\
-		</div>\n\
-		</div>\n\n')
-	
-	w.write('\t\t<div class="header">\n\
-		<h2>Comments</h2>\n\
+		<h3>'+' '.join((files.split('-1')[0]).split('_')[0:3])+'</h3>\n\
+		<img src="/%s/'% name +files+'" alt="'+files.split('.')[0]+'" height="700" width="700">\n')
+
+			if 'SupraHex_visHexMulComp' in files:
+				w.write('<div class="img_txt">\n\
+			<pre>This is the visualisation of multiple component planes of a supra-hexagonal grid.\n\
+</pre>\n\
+			</div>\n\
+			</div>\n\n')
+
+			elif 'SupraHex_visHexMapping_index' in files:
+				w.write('<div class="img_txt">\n\
+			<pre>Supra-hexagonal map.\n\
+\n\
+In this project 66 colon cancer related genes have been examined\n\
+Theres no way to make a hexagon with 66 genes,\n\
+so supraHex produces a map in which genes with similar data patters\n\
+self-organise to the same or nearby nodes in the map\n\
+and the distribution of genes across the 2D map is representive\n\
+of the high-dimensional input space\n\
+\n\
+This supra-hexagonal map consists of 61 smaller hexagons.\n\
+For easy reference, these hexagons are indexed.\n\
+The indexing begins with the centroid/the middle of the supraHexagon.\n\
+Then the hexagons of the same step, an anti-clock order starting from the rightmost.\n\
+This map can also be easily described by the grid radius\n\
+(= maximum steps away from the centroid, r=5 in this case,\n\
+or by the xy-dimensions of the map grid \n\
+(= maxium number of hexagons horizontally/vertically; xdim = ydim = 9).</pre>\n\
+			</div>\n\
+			</div>\n\n')
+			elif 'SupraHex_visHexMapping_hits' in files:
+				w.write('<div class="img_txt">\n\
+			<pre>Map hit distribution.\n\
+\n\
+The function visHexMapping is used to visualise the single-value properties\n\
+that are associated with the map.\n\
+The number represents how many input data vectors are hitting each hexagon.\n\
+The size  of each hexagon is proportional to the number of hits.</pre>\n\
+			</div>\n\
+			</div>\n\n')
+
+			elif 'SupraHex_visHexMapping_dist' in files:
+				w.write('<div class="img_txt">\n\
+			<pre>Map Distance visualisation\n\
+\n\
+The function visHexMapping is used to visualise the single-value properties\n\
+that are associated with the map. The map distance visualisation,\n\
+which tells how far each hexagon is away rom its neighbors.\n\
+So for each hexagon,\n\
+its median distances in high-dimensional input space to its neighbors is calculated.\n\
+The size of each hexagon is proportional to this distance.</pre>\n\
+			</div>\n\
+			</div>\n\n')
+
+			elif 'SupraHex_visHexPattern_lines' in files:
+				w.write('<div class="img_txt">\n\
+			<pre>Line plot of codebook patterns\n\
+\n\
+The function visHexPattern is used to visualise the vector-based patterns\n\
+that are associated with the map using line plots.\n\
+If multiple colors are given, the points are also plotted.\n\
+When the pattern involves both positive and negative values,\n\
+zero horizontal line is also shown.</pre>\n\
+			</div>\n\
+			</div>\n\n')
+
+			elif 'SupraHex_visHexPattern_bars' in files:
+				w.write('<div class="img_txt">\n\
+			<pre>Bar plot of codebook patterns\n\
+\n\
+The function visHexPattern is used to visualise the vector-based patterns\n\
+that are associated with the map using bar plots.\n\
+When the pattern involves both positive and negative values,\n\
+the zero horizontal line is in the middle of the hexagon;\n\
+otherwise at the top of the hexagon for all negative values,\n\
+and at the bottom for all positive values.</pre>\n\
+			</div>\n\
+			</div>\n\n')
+
+			elif 'SupraHex_visDmatCluster' in files:
+				w.write('<div class="img_txt">\n\
+			<pre>Clusters of the trained map.\n\
+\n\
+Partition the trained map into clusters using region-growing algorithm\n\
+to ensure each cluster is conitinuous.\n\
+There is also an output.txt (= PyClone_cellular_prevalence.supraHex_base.txt).\n\
+This file has 1st column for your input data ID\n\
+(an integer; otherwise the row names of input data matrix),\n\
+and 2nd column for the corresponding index of best-matching hexagons\n\
+(i.e. mutation clusters), and 3rd column for the cluster bases\n\
+(i.e. mutation meta-clusters). Each cluster is filled with the same continuous color.\n\
+The cluster index is marked in the seed node.</pre>\n\
+			</div>\n\
+			</div>\n\n')
+
+			elif 'SupraHex_visDmatHeatmap' in files:
+				w.write('<div class="img_txt">\n\
+			<pre>This is text</pre>\n\
+			</div>\n\
+			</div>\n\n')
+
+			elif 'SupraHex_visCompReorder' in  files:
+				w.write('<div class="img_txt">\n\
+			<pre>This is the visualisation of multiple component planes reorded\n\
+within a sheet-shape hexagonal grid.\n\
+\n\
+Each component illustrates the sample-specific map\n\
+and is placed within a two-dimensional rectangular lattice.\n\
+within each component, genes with the same or similar expression patters\n\
+are mapped to the same or nearby map nodes.\n\
+When zooming out to look at between-components/samples relationships,\n\
+samples with the similar expression profiles are placed closer to each other.</pre>\n\
+			</div>\n\
+			</div>\n\n')
+
+#####################################Comments#####################################
+	w.write('<h2>Comments</h2>\n\
 		<pre>\n')
 	major_cn = 0
 	r = open(log_file, 'rb')
@@ -355,8 +502,51 @@ img {\n\
 	w.write('\t\tPatient %s has in '%name + str(major_cn) +' cases a major copy number above 6!\n\
 		</pre>\n\
 		</div>\n\
-		</div>\n\
-</body>\n\
+		</div>\n')
+
+#####################################table#####################################
+	w.write('\t\t<h2>Cellular prevalence and Variant Allel frequency</h2>\n\n\
+		<table style="width:100%">\n')
+
+	os.chdir('/home/shared_data_core/COLON/subclonality/%s/'% name)
+	
+	if os.path.exists("/home/shared_data_core/COLON/subclonality/%s/parameters_%s.tsv"% (name, name)):
+		r = open('parameters_'+name+'.tsv', 'rb')
+
+		w.write('\t\t<tr>\n')
+		first_line = r.readline()
+		for i in first_line.split('\t'):
+			if not i == '\n':
+				#print i
+				w.write('\t\t\t<th>'+i.upper()+'</th>\n')
+		w.write('\t\t</tr>\n')
+
+
+		for lines in r:
+			w.write('\t\t<tr>\n')
+			for u in lines.split('\t'):
+				#print u.split('\n')[0]
+				w.write('\t\t\t<td>'+u.split('\n')[0]+'</td>\n')
+			w.write('\t\t</tr>\n')
+
+	w.write('<script>\n\
+// When the user scrolls down 20px from the top of the document, show the button\n\
+window.onscroll = function() {scrollFunction()};\n\
+\n\
+function scrollFunction() {\n\
+    if (document.body.scrollTop > 20 || document.documentElement.scrollTop > 20) {\n\
+        document.getElementById("myBtn").style.display = "block";\n\
+    } else {\n\
+        document.getElementById("myBtn").style.display = "none";\n\
+    }\n\
+}\n\
+\n\
+// When the user clicks on the button, scroll to the top of the document\n\
+function topFunction() {\n\
+    document.body.scrollTop = 0;\n\
+    document.documentElement.scrollTop = 0;\n\
+}\n\
+</script></body>\n\
 </html>\n')
 	
 

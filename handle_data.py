@@ -1011,7 +1011,7 @@ def main():
 	for name in names:
 		makedir(name)
 		copyfile_VCF_TXT(name)
-		#copyfile_BAM(name)
+		copyfile_BAM(name)
 		global patient_dir
 		patient_dir = '/home/shared_data_core/COLON/subclonality/%s/'% name
 		source = glob.glob(patient_dir+'*.vcf')
@@ -1027,13 +1027,13 @@ def main():
 			input_tsv(patient_dir, name, patient_name, vcf_files)
 		prep_config_file(name, patient_name, patient_dir)
 		prep_bash(name)
-		#run_bash(bash_file, name)
+		run_bash(bash_file, name)
 		prep_supraHex(name)
-		#exe_supraHex(name, R_script)
+		exe_supraHex(name, R_script)
 		parameters(name)
 		
 		rights(patient_dir)
-		#convert_pdf_images(name)
+		convert_pdf_images(name)
 		
    	logging.info('Finished')
 	
