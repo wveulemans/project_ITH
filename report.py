@@ -342,7 +342,14 @@ tr:nth-child(even){background-color: #cccccc}\n\
 		<h3>PyClone density plot</h3>\n\
 		<img src="/'+name+'/PyClone_density_plot_'+name+'.png" alt="PyClone density plot '+name+'.png">\n\
 		<div class="img_txt">\n\
-		<pre>This is text</pre>\n\
+		<pre>Plot of the posterior density of the cellular frequencies use\n\
+The loci density is the posterior distribution of cellular prevalence for each mutation (loci).\n\
+\n\
+The large range in the scatter indicates there is uncertainty in the cellular prevalence of the mutation.\n\
+Clusters with one mutation will typically have more uncertainty than those with multiple mutations.\n\
+This happens because without clustering PyClone has no idea which possible genotype the mutation has.\n\
+However, once several mutations cluster the model can share information\n\
+and infer what the common cellular prevalence is and by extension associated genotypes for mutations in the cluster are.</pre>\n\
 		</div>\n\
 		</div>\n\n')
 
@@ -350,22 +357,58 @@ tr:nth-child(even){background-color: #cccccc}\n\
 	
 	for files in source:
 		if 'PyClone' in files and '.png' in files and not 'density_plot' in files:
-			#print files
-			#print ' '.join((files.split('.')[0]).split('_')[0:3])
+			#print files, name
 			w.write('\t\t<div class="plot">\n\
-		<h3>'+' '.join((files.split('.')[0]).split('_')[0:3])+'</h3>\n\
-		<img src="/%s/'% name +files+'" alt="'+files.split('.')[0]+'" height="750" width="750">\n\
-		<div class="img_txt">\n\
-		<pre>This is text</pre>\n\
-		</div>\n\
-		</div>\n\n')
+		<h3>'+' '.join((files.split('-1')[0]).split('_')[0:3])+'</h3>\n\
+		<img src="/%s/'% name +files+'" alt="'+files.split('.')[0]+'" height="700" width="700">\n')
+
+			if 'PyClone_sim_matrix' in files:
+				w.write('<div class="img_txt">\n\
+			<pre>Similarity matrix.\n\
+\n\
+The posterior similarity matrix which shows how often mutations\n\
+where sampled to be in the same cluster</pre>\n\
+			</div>\n\
+			</div>\n\n')
+
+			elif 'PyClone_parallel_coordinates' in files:
+				w.write('<div class="img_txt">\n\
+			<pre>Parallel coordinates.\n\
+\n\
+Plot the mean cellular frequencies of mutations colour coded by cluster ID</pre>\n\
+</div>\n\
+			</div>\n\n')
+
+			elif 'PyClone_cell_prev_scatter' in files:
+				w.write('<div class="img_txt">\n\
+			<pre>Cellular prevalence scatter.\n\
+\n\
+Cellular prevalence scatter</pre>\n\
+</div>\n\
+			</div>\n\n')
+
+			elif 'PyClone_vaf_scatter' in files:
+				w.write('<div class="img_txt">\n\
+			<pre>Variant allele frequency scatter.\n\
+\n\
+Variant allele frequency scatter</pre>\n\
+</div>\n\
+			</div>\n\n')
+		
+			elif 'PyClone_vaf_parallel_coordinates' in files:
+				w.write('<div class="img_txt">\n\
+			<pre>Variant allele frequency parallel coordinates .\n\
+\n\
+Variant allele frequency parallel coordinates</pre>\n\
+			</div>\n\
+			</div>\n\n')
 
 #####################################SupraHex visuals#####################################
 	w.write('\t\t<h2>SupraHex visual output</h2>\n\n')
 
 	for files in source:
 		if 'SupraHex' in files and '.png' in files:
-			#print files
+			#print files, name
 			#print ' '.join((files.split('.')[0]).split('_')[0:3])
 			w.write('\t\t<div class="plot">\n\
 		<h3>'+' '.join((files.split('-1')[0]).split('_')[0:3])+'</h3>\n\
@@ -382,14 +425,11 @@ tr:nth-child(even){background-color: #cccccc}\n\
 				w.write('<div class="img_txt">\n\
 			<pre>Supra-hexagonal map.\n\
 \n\
-In this project 66 colon cancer related genes have been examined\n\
-Theres no way to make a hexagon with 66 genes,\n\
-so supraHex produces a map in which genes with similar data patters\n\
+SupraHex produces a map in which genes with similar data patterns\n\
 self-organise to the same or nearby nodes in the map\n\
 and the distribution of genes across the 2D map is representive\n\
 of the high-dimensional input space\n\
 \n\
-This supra-hexagonal map consists of 61 smaller hexagons.\n\
 For easy reference, these hexagons are indexed.\n\
 The indexing begins with the centroid/the middle of the supraHexagon.\n\
 Then the hexagons of the same step, an anti-clock order starting from the rightmost.\n\
@@ -405,8 +445,7 @@ or by the xy-dimensions of the map grid \n\
 \n\
 The function visHexMapping is used to visualise the single-value properties\n\
 that are associated with the map.\n\
-The number represents how many input data vectors are hitting each hexagon.\n\
-The size  of each hexagon is proportional to the number of hits.</pre>\n\
+The number represents how many input data vectors are hitting each hexagon.</pre>\n\
 			</div>\n\
 			</div>\n\n')
 
@@ -466,7 +505,10 @@ The cluster index is marked in the seed node.</pre>\n\
 
 			elif 'SupraHex_visDmatHeatmap' in files:
 				w.write('<div class="img_txt">\n\
-			<pre>This is text</pre>\n\
+			<pre>Function to visualise gene clusters/bases partitioned from a supra-hexagonal grid using heatmap\n\
+\n\
+heatmap is used to visualise cellular prevalence patterns seen within each meta-cluster/base.\n\
+Row side bar indicates the mutation meta-clusters/bases.\n\</pre>\n\
 			</div>\n\
 			</div>\n\n')
 
@@ -484,6 +526,47 @@ samples with the similar expression profiles are placed closer to each other.</p
 			</div>\n\
 			</div>\n\n')
 
+			elif 'SupraHex_visTreeBootstrap' in files:
+				w.write('<div class="img_txt">\n\
+			<pre>Visualises a simple phylogenetic tree\n\
+\n\
+A neighbour-joining tree is constructed based\n\
+on pairwise euclidean distance matrices between samples.\n\
+The robustness of tree branching is evaluated using bootstraping.\n\
+In internal nodes (also color-coded), the number represents the proportion of bootstrapped trees\n\
+that support the observed internal branching.\n\
+The higher the number, the more robust the tree branching. \n\
+100 means that the internal branching is always observed by resampling characters.</pre>\n\
+			</div>\n\
+			</div>\n\n')
+
+#####################################Table with information about SupraHex#####################################
+	w.write('<h2>Hexagon index information</h2>\n\
+		<table style="width:100%">\n')
+
+	os.chdir('/home/shared_data_core/COLON/subclonality/%s/'% name)
+	
+	if os.path.exists("/home/shared_data_core/COLON/subclonality/%s/PyClone_cellular_prevalence.supraHex_base_2.txt"% name ):
+		r = open('PyClone_cellular_prevalence.supraHex_base_2.txt', 'rb')
+
+		w.write('\t\t<tr>\n')
+		first_line = r.readline()
+		for i in first_line.split('\t'):
+			if not i == '\n':
+				#print i
+				w.write('\t\t\t<th>'+i.split('\n')[0]+'</th>\n')
+		w.write('\t\t</tr>\n')
+
+
+		for lines in r:
+			w.write('\t\t<tr>\n')
+			for u in lines.split('\t'):
+				#print u.split('\n')[0]
+				w.write('\t\t\t<td>'+u.split('\n')[0]+'</td>\n')
+			w.write('\t\t</tr>\n')
+		w.write('</table>\n')
+
+
 #####################################Comments#####################################
 	w.write('<h2>Comments</h2>\n\
 		<pre>\n')
@@ -499,13 +582,13 @@ samples with the similar expression profiles are placed closer to each other.</p
 				 
 
 	#print major_cn
-	w.write('\t\tPatient %s has in '%name + str(major_cn) +' cases a major copy number above 6!\n\
+	w.write('\t\tPatient %s has in '%name + str(major_cn) +' cases a major copy number above 8!\n\
 		</pre>\n\
 		</div>\n\
 		</div>\n')
 
 #####################################table#####################################
-	w.write('\t\t<h2>Cellular prevalence and Variant Allel frequency</h2>\n\n\
+	w.write('<h2>Cellular prevalence and Variant Allel frequency</h2>\n\
 		<table style="width:100%">\n')
 
 	os.chdir('/home/shared_data_core/COLON/subclonality/%s/'% name)
@@ -528,6 +611,7 @@ samples with the similar expression profiles are placed closer to each other.</p
 				#print u.split('\n')[0]
 				w.write('\t\t\t<td>'+u.split('\n')[0]+'</td>\n')
 			w.write('\t\t</tr>\n')
+		w.write('</table>\n')
 
 	w.write('<script>\n\
 // When the user scrolls down 20px from the top of the document, show the button\n\
