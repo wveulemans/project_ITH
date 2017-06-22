@@ -23,7 +23,7 @@ def to_lower(textfile):
 
 
 
-def patient_names(paired_samples):
+def patient_names(paired_samples_all):
 	"""
 		Input: '/home/shared_data_core/COLON/subclonality/paired_samples_nele_purity_all_runs_short.txt'
 		----------
@@ -33,7 +33,7 @@ def patient_names(paired_samples):
 
 	"""
 
-	r = open(paired_samples, 'rb')
+	r = open(paired_samples_all, 'rb')
 	next(r) # skip header
 
 	result=[]
@@ -55,7 +55,7 @@ def patient_names(paired_samples):
 
 	
 
-def index(names):
+def index(names, ALL):
 	os.chdir('/home/shared_data_core/COLON/subclonality/')
 	w = open('index.php', 'wb')
 	os.chmod('index.php', 0755)
@@ -101,28 +101,11 @@ li a:hover:not(.active) {\n\
 <body>\n\
 <ul>\n\
 	<li><a class="active" href="http://localhost:8000/index.php">Home</a></li>\n')
-	for name in names:
-		w.write('\t<li><a href="http://localhost:8000/patient_report_'+name+'.php">patient_'+name+'</a></li>\n')
+	w.write('\t<li><a href="http://localhost:8000/patient_report_'+ALL+'.php">patient_'+ALL+'</a></li>\n')
 	w.write('</ul>\n\
 <div style="margin-left:8%;padding:1px 16px;height:1000px;">\n\
  <h2>Project: intra tumor heterogeneity</h2>\n\
- <pre>This is a website created to share information about the tumour heterogeneity from different patients.\n\
-\n\
-Many biological processes do follow a Darwinian evolutionary process. This is not an exception for tumors. \n\
-During cancer cell division arise multiple cancer cells from one ancestor cell, all with their own somatic mutations.\n\
-These mutations could be copy-number variations (CNV) or short copy-number variations (SNV).\n\
-The cells that originate from the ancestor cell and share the same somatic mutations are called clonal cells.\n\
-Those that are best adapted to environment will survive or divide faster than other tumorcells.\n\
-The cells that come from these clonal cells are called subclonal cells.\n\
-All cells from the tumor are phylogenetical related to each other.\n\
-These somatic mutations can be used to draw a scheme, so we can visualize the tumor-specific evolution on basis of a phylogenetical tree.\n\
-\n\
-By using targeted next generation sequencing (like the Haloplex technique) we could analyse genomic regions of interest in multiple samples.\n\
-The samples were taken on the same moment from different spots of the tumor and metases.\n\
-This experiment became a deep-sequencing experiment because we focused on certain genomic regions. \n\
-This technique is highly effective to detect allele frequencies from 100 to 1%. The detection limit from 1% is necessary for these subclonal variants.\n\
-Based on existing tools like PyClone we can analyze for instance the inference of a clonal population.\n\
-The input for the tool is a file with information about the mutation for example number of reads that cover the mutations and information about the CNV or SNV.</pre>\n\
+ <p>This is a website created to share information about the tumour heterogeneity from different patients</p>\n\
 </div>\n\
 </div>\n\
 </body>\n\
@@ -130,16 +113,16 @@ The input for the tool is a file with information about the mutation for example
 	w.close()
 
 
-def patient_report(name, clin_info, log_file, names):
+def patient_report(ALL, clin_info, log_file, names):
 	os.chdir('/home/shared_data_core/COLON/subclonality/')
-	w = open('patient_report_%s.php'% name, 'wb')
-	os.chmod('patient_report_%s.php'% name, 0755)
+	w = open('patient_report_'+ALL+'.php', 'wb')
+	os.chmod('patient_report_'+ALL+'.php', 0755)
 	
 	w.write('<!DOCTYPE html>\n\
 <html lang="en">\n\
 <head>\n\
 <meta charset="utf-8">\n\
-<title>Patient report %s</title>\n'% name)
+<title>Patient report '+ALL+'</title>\n')
 	w.write('\t<style type="text/css" media="screen">\n\
 .ul_up {\n\
 	list-style-type: none;\n\
@@ -280,8 +263,8 @@ tr:nth-child(even){background-color: #cccccc}\n\
 		<li class="dropdown">\n\
     			<a href="javascript:void(0)" class="dropbtn">Patients</a>\n\
     			<div class="dropdown-content">\n')
-	for i in names:
-		w.write('\t\t\t<a href="http://localhost:8000/patient_report_'+i+'.php">patient_'+i+'</a>\n')
+	
+	w.write('\t\t\t<a href="http://localhost:8000/patient_report_'+ALL+'.php">patient_'+ALL+'</a>\n')
       			
     	w.write('\t\t\t</div>\n\
   		</li>\n\
@@ -291,72 +274,18 @@ tr:nth-child(even){background-color: #cccccc}\n\
   <img src="person.jpg" alt="unknown_person" width="75" height="100">\n\
   <div class="dropdown_content_image">\n\
     <img src="person.jpg" alt="unknown_person" width="225" height="300">\n\
-    <div class="desc">Photo: patient '+name+'</div>\n\
+    <div class="desc">Photo: patient '+ALL+'</div>\n\
   </div>\n\
 </div>\n')
-	w.write('\t<h1>Patient %s</h1>\n'% name.upper())
+	w.write('\t<h1>Patient '+ALL+'</h1>\n')
 	w.write('\t<div class=geheel>\n\
-		<h2>Information</h2>\n\
-		<div class="navlinks">\n')
-	
-	r = open(clin_info, 'rb')
-	reader = csv.reader(r, delimiter=',')
-	next(reader)	# skip header
-	for line in reader:
-		if line[0] == name:
-			w.write('\t\t<h3>General information</h3>\n\
-		<ul>\n\
-			<li>Gender: '+str(line[6]).upper()+'</li>\n\
-			<li>Date of birth: '+line[3]+'</li>\n\
-			<li>Date of death: '+line[4]+'</li>\n\
-		</ul>\n\n\
-		<h3>Diagnosis + primary tumor</h3>\n\
-		<ul>\n\
-			<li>Diagnosis: '+line[1]+'</li>\n\
-			<li>Date diagnosis: '+line[2]+'</li>\n\
-			<li>Date of biopsy (Primary Tumor): '+line[7]+'</li>\n\
-			<li>Amount of primary tumors: '+line[8]+'</li>\n\
-			<li>Age when sample taken: '+line[9]+'</li>\n\
-			<li>Chemo before biopsy: '+line[11]+'</li>\n\
-		</ul>\n\n\
-		<h3>Metastasis</h3>\n\
-		<ul>\n\
-			<li>Biopsy metastasis: '+line[12]+'</li>\n\
-			<li>Amount of metastasis: '+line[13]+'</li>\n\
-			<li>Places of metastasis: '+line[14]+'</li>\n\
-			<li>Date diagnosis metassatis: '+line[15]+'</li>\n\
-			<li>Age when sample taken: '+line[16]+'</li>\n\
-			<li>Chemo before biopsy: '+line[18]+'</li>\n\
-		</ul>\n\n\
-		<h3>Mutation information</h3>\n\
-		<ul>\n\
-			<li>Mutation test: '+line[22]+'</li>\n\
-			<li>Estimates amount of tumorcells: '+line[23]+'</li>\n\
-			<li>Gene + codon: '+line[24]+'</li>\n\
-			<li>Method + sensitivity: '+line[25]+'</li>\n\
-			<li>Mutation: '+line[26]+'</li>\n\
-			<li>tested for MSI: '+line[27]+'</li>\n\
-			<li>MSI result: '+line[28]+'</li>\n\
-			<li>pTNM: '+line[29]+'</li>\n\
-			<li>Differentationdegree: '+line[30]+'</li>\n\
-			<li>Chemotype: '+line[31]+'</li>\n\
-		</ul>\n\n\
-		<h3>Other</h3>\n\
-		<ul>\n\
-			<li>Smoker: '+line[19]+'</li>\n\
-			<li>Alcohol use: '+line[21]+'</li>\n\
-			<li>Familial oncological background: '+line[32]+'</li>\n\
-			<li>Comment: '+line[33]+'</li>\n\
-			<li>Patient state: '+line[34]+'</li>\n\
-		</ul>\n\
-		</div>\n\n\
 		<h2>PyClone visual output</h2>\n')
 
-	os.chdir('/home/shared_data_core/COLON/subclonality/%s/'% name)
+	os.chdir('/home/shared_data_core/COLON/subclonality/'+ALL+'/')
 
 	w.write('\t\t<div class="plot">\n\
 		<h3>PyClone density plot</h3>\n\
-		<img src="/'+name+'/PyClone_density_plot_'+name+'.png" alt="PyClone density plot '+name+'.png">\n\
+		<img src="/'+ALL+'/PyClone_density_plot_'+ALL+'.png" alt="PyClone density plot '+ALL+'.png">\n\
 		<div class="img_txt">\n\
 		<pre>Plot of the posterior density of the cellular frequencies use\n\
 The loci density is the posterior distribution of cellular prevalence for each mutation (loci).\n\
@@ -376,7 +305,7 @@ and infer what the common cellular prevalence is and by extension associated gen
 			#print files, name
 			w.write('\t\t<div class="plot">\n\
 		<h3>'+' '.join((files.split('-1')[0]).split('_')[0:3])+'</h3>\n\
-		<img src="/%s/'% name +files+'" alt="'+files.split('.')[0]+'" height="700" width="700">\n')
+		<img src="/'+ALL+'/'+files+'" alt="'+files.split('.')[0]+'" height="700" width="700">\n')
 
 			if 'PyClone_sim_matrix' in files:
 				w.write('<div class="img_txt">\n\
@@ -428,7 +357,7 @@ Variant allele frequency parallel coordinates</pre>\n\
 			#print ' '.join((files.split('.')[0]).split('_')[0:3])
 			w.write('\t\t<div class="plot">\n\
 		<h3>'+' '.join((files.split('-1')[0]).split('_')[0:3])+'</h3>\n\
-		<img src="/%s/'% name +files+'" alt="'+files.split('.')[0]+'" height="700" width="700">\n')
+		<img src="/'+ALL+'/'+files+'" alt="'+files.split('.')[0]+'" height="700" width="700">\n')
 
 			if 'SupraHex_visHexMulComp' in files:
 				w.write('<div class="img_txt">\n\
@@ -560,9 +489,9 @@ The higher the number, the more robust the tree branching. \n\
 	w.write('<h2>Hexagon index information</h2>\n\
 		<table style="width:100%">\n')
 
-	os.chdir('/home/shared_data_core/COLON/subclonality/%s/'% name)
+	os.chdir('/home/shared_data_core/COLON/subclonality/'+ALL+'/')
 	
-	if os.path.exists("/home/shared_data_core/COLON/subclonality/%s/PyClone_cellular_prevalence.supraHex_base_2.txt"% name ):
+	if os.path.exists("/home/shared_data_core/COLON/subclonality/"+ALL+"/PyClone_cellular_prevalence.supraHex_base_2.txt"):
 		r = open('PyClone_cellular_prevalence.supraHex_base_2.txt', 'rb')
 
 		w.write('\t\t<tr>\n')
@@ -583,34 +512,14 @@ The higher the number, the more robust the tree branching. \n\
 		w.write('</table>\n')
 
 
-#####################################Comments#####################################
-	w.write('<h2>Comments</h2>\n\
-		<pre>\n')
-	major_cn = 0
-	r = open(log_file, 'rb')
-	next(r)
-	for line in r:
-		if 'Patient %s:'% name in line and 'major_cn' in line and '!ARTEFACT!' in line:
-			#print line
-			major_cn += 1
-		elif 'Patient %s: '% name in line:
-			w.write('\t\tFile: '+(line.split('\t')[6]).split(' ')[4]+' is empty!\n')
-				 
-
-	#print major_cn
-	w.write('\t\tPatient %s has in '%name + str(major_cn) +' cases a major copy number above 8!\n\
-		</pre>\n\
-		</div>\n\
-		</div>\n')
-
 #####################################table#####################################
 	w.write('<h2>Cellular prevalence and Variant Allel frequency</h2>\n\
 		<table style="width:100%">\n')
 
-	os.chdir('/home/shared_data_core/COLON/subclonality/%s/'% name)
+	os.chdir('/home/shared_data_core/COLON/subclonality/'+ALL+'/')
 	
-	if os.path.exists("/home/shared_data_core/COLON/subclonality/%s/parameters_%s.tsv"% (name, name)):
-		r = open('parameters_'+name+'.tsv', 'rb')
+	if os.path.exists("/home/shared_data_core/COLON/subclonality/"+ALL+"/parameters_"+ALL+".tsv"):
+		r = open('parameters_'+ALL+'.tsv', 'rb')
 
 		w.write('\t\t<tr>\n')
 		first_line = r.readline()
@@ -648,18 +557,18 @@ function topFunction() {\n\
 }\n\
 </script></body>\n\
 </html>\n')
-	
 
 def main():
-	paired_samples = '/home/shared_data_core/COLON/subclonality/paired_samples_nele_purity_all_runs_short.txt'
+
+	paired_samples_all = '/home/shared_data_core/COLON/subclonality/paired_samples_nele_purity_all_runs_short_all.txt'
 	clin_info = '/home/shared_data_core/COLON/subclonality/Klinischegegegeven_patienten_ITH_20151110.csv'
 	log_file = '/home/shared_data_core/COLON/subclonality/log.txt'
+	ALL = 'ALL'
 
-	to_lower(paired_samples)
-	names = patient_names(paired_samples)
-	index(names)
-	for name in names:
-		patient_report(name, clin_info, log_file, names)
+	to_lower(paired_samples_all)
+	names = patient_names(paired_samples_all)
+	index(names, ALL)
+	patient_report(ALL, clin_info, log_file, names)
 
 
 if __name__ == "__main__":

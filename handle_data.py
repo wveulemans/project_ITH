@@ -29,6 +29,7 @@ def main():
 	global info_file
 	info_file = '/home/shared_data_core/COLON/subclonality/info_file.txt'
 	R_script = '/home/shared_data_core/COLON/subclonality/supraHex_script.R'
+	report_script = '/home/shared_data_core/COLON/subclonality/report.py'
 	
 	# set characters to lowercase
 	to_lower.to_lower(text_file)
@@ -65,7 +66,7 @@ def main():
 		patient_variant_dict, distinct_samples = prep_TSV2.prep_tsv2(name, range_pos_all)
 
 		TSV2_writer.tsv2_writer(patient_variant_dict, distinct_samples, name)
- 		TSV2_writer.uniq(name, distinct_samples)
+		TSV2_writer.uniq(name, distinct_samples)
 		file_writer.close()
 
 		source = glob.glob(patient_dir+'*.tsv') 
@@ -73,12 +74,12 @@ def main():
 			empty_files.empty_files(name, files)
 			if 'PYCLONE' in files:
 				patient_name, vcf_files = input_files.input_files(patient_dir, name, files, distinct_samples)
-				#input_TSV.input_tsv(patient_dir, name, patient_name, vcf_files)
+		
+				
 		prep_config.prep_config_file(name, patient_name, patient_dir)
 		prep_bash.prep_bash(name)
-		execute.exe_bash(name)
+		#execute.exe_bash(name)
 
-		# add 0 if variant_allele_freq is actually 0
 		prep_table.prep_pyclone_table(patient_dir, name)
 		
 		prep_SupraHex.prep_supraHex(name)
@@ -87,39 +88,9 @@ def main():
 		
 		rights.rights(patient_dir)
 		convert_PDF.convert_pdf_images(name)	
-	#######################################################################################################################
-	# For all samples
-	
-#	text_file_all = '/home/shared_data_core/COLON/subclonality/paired_samples_nele_purity_all_runs.txt'
-#	info_file2 = '/home/shared_data_core/COLON/subclonality/info_file2.txt'
-#	ALL = 'ALL'
-#
-#	to_lower.to_lower(text_file_all)
-#	information_file.mk_info_file(short2, text_file_all, info_file2)
-	
-##	names_all = patientnames.sample_names(text_file_all)
-	#print names_all
-#	make_directory.makedir(ALL)
-#
-#	for name in names_all:
-#		# copy VCF's and CNV's	
-#		copy_VCF.copyfile_VCF_all(name, ALL)
-#		copy_CNV.copyfile_CNV_all(name, ALL)
-#
-#		global patient_dir_all
-#		patient_dir_all = '/home/shared_data_core/COLON/subclonality/'+ALL+'/'
-#		source = glob.glob(patient_dir_all+'*.vcf')
-#
-#		var_types = ['snp','indel']
-#		for var_type in var_types:
-#			file_type = glob.glob(patient_dir_all+'*'+var_type+'*.vcf')
-#			#print 'FOUND :: ', file_type
-#
-#		for files in source:
-#			variant_info,file_writer = prep_TSV.prep_tsv(name,files)
-#			range_pos_all = read_VCF.read_vcf(variant_info,files,name,file_writer,short2,info_file)
-#		
-	
+
+	#execute.exe_patient_report(report_script)
+
 
 
    	logging.info('Finished')

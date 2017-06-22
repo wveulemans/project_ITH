@@ -79,7 +79,6 @@ def parameters(name):
 						cell_prev.append(line.split('\t')[3])
 
 				cell_prev = map(float, cell_prev)
-				#print cell_prev
 
 				# count amount of numbers
 				count = 0
@@ -89,7 +88,12 @@ def parameters(name):
 	
 				# calculate average
 				#print (sum(cell_prev)/count)
-				r_cell_prev.append(format((sum(cell_prev)/count), '.4f'))
+				if not count == 0:
+					r_cell_prev.append(format((sum(cell_prev)/count), '.4f'))
+				else:
+					r_cell_prev.append(format((0), '.4f')) 
+				
+		#print r_cell_prev
 
 		prev_VAF['cell_prev'] =  r_cell_prev
 		
@@ -119,7 +123,10 @@ def parameters(name):
 	
 				# calculate average
 				#print (sum(cell_prev_std)/count)
-				r_cell_prev_std.append(format((sum(cell_prev_std)/count), '.4f'))
+				if not count == 0:
+					r_cell_prev_std.append(format((sum(cell_prev_std)/count), '.4f'))
+				else:
+					r_cell_prev.append(format((0), '.4f')) 
 
 		prev_VAF['cell_prev_std'] = r_cell_prev_std
 
@@ -185,7 +192,10 @@ def parameters(name):
 	
 				# calculate average
 				#print (sum(cell_prev_std)/count)
-				r_VAF.append(format((sum(VAF)/count), '.4f'))
+				if not count == 0:
+					r_VAF.append(format((sum(VAF)/count), '.4f'))
+				else:
+					r_cell_prev.append(format((0), '.4f')) 
 		
 		prev_VAF['VAF'] = r_VAF
 
@@ -220,8 +230,12 @@ def parameters(name):
 		count = 0
 		for cluster in prev_VAF['clu_id']:
 			for sample in prev_VAF['sample_id']:
-				w.write(cluster+'\t'+sample+'\t'+str(prev_VAF['cell_prev'][count])+'\t'+str(prev_VAF['cell_prev_std'][count])+'\t'+str(prev_VAF['cell_prev_overall'])+'\t'+str(prev_VAF['cell_prev_std_overall'])+'\t'+str(prev_VAF['VAF'][count])+'\t'+str(prev_VAF['VAF_overall']) )
-				count += 1
+				print prev_VAF
+				try:
+					w.write(cluster+'\t'+sample+'\t'+str(prev_VAF['cell_prev'][count])+'\t'+str(prev_VAF['cell_prev_std'][count])+'\t'+str(prev_VAF['cell_prev_overall'])+'\t'+str(prev_VAF['cell_prev_std_overall'])+'\t'+str(prev_VAF['VAF'][count])+'\t'+str(prev_VAF['VAF_overall']) )
+					count += 1
+				except (IndexError):
+					pass
 				w.write('\n')
 		logging.info('parameter file created for %s'% name)
 
